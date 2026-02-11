@@ -13,10 +13,12 @@ import Home from "@/pages/Home";
 import EventDetails from "@/pages/EventDetails";
 import MyTickets from "@/pages/MyTickets";
 import Resale from "@/pages/Resale";
+import HowItWorks from "@/pages/HowItWorks";
 import NotFound from "@/pages/NotFound";
 
 // Components
 import { Header } from "@/components/Header";
+import { DemoBanner } from "@/components/shared/DemoBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,11 +50,13 @@ function App() {
             <BrowserRouter>
               <div className="min-h-screen bg-background">
                 <Header />
+                <DemoBanner />
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/event/:id" element={<EventDetails />} />
                   <Route path="/my-tickets" element={<MyTickets />} />
                   <Route path="/resale" element={<Resale />} />
+                  <Route path="/how-it-works" element={<HowItWorks />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>

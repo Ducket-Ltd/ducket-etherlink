@@ -3,17 +3,23 @@ import { Link } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 
 const navLinks = [
   { label: "Events", to: "/" },
   { label: "Resale", to: "/resale" },
+  { label: "How It Works", to: "/how-it-works" },
 ];
 
 export function Header() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { data: balance } = useBalance({ address });
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const formattedBalance = balance
+    ? `${parseFloat(balance.formatted).toFixed(2)} ${balance.symbol}`
+    : null;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,6 +71,11 @@ export function Header() {
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
+              {isConnected && formattedBalance && (
+                <span className="text-sm font-medium text-gray-600 bg-[#F5F0FF] px-3 py-1.5 rounded-lg">
+                  {formattedBalance}
+                </span>
+              )}
               <ConnectButton
                 showBalance={false}
                 chainStatus="icon"

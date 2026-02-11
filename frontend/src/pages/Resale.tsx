@@ -13,57 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, MapPin, TrendingUp, Shield, Search } from "lucide-react";
-import { MOCK_EVENTS, formatXTZ } from "@/lib/mockData";
+import { MOCK_EVENTS, MOCK_RESALE_LISTINGS } from "@/lib/mockData";
 import { formatDate, truncateAddress } from "@/lib/utils";
 import { useState } from "react";
-
-// Mock resale listings
-const MOCK_RESALE_LISTINGS = [
-  {
-    id: "resale-1",
-    eventId: "1",
-    tierId: "1-vip",
-    ticketId: 42,
-    seatId: "VIP-0042",
-    originalPrice: 2.0,
-    listingPrice: 2.2,
-    seller: "0x1234567890abcdef1234567890abcdef12345678",
-    listedAt: new Date("2025-02-01"),
-  },
-  {
-    id: "resale-2",
-    eventId: "1",
-    tierId: "1-ga",
-    ticketId: 156,
-    seatId: "GA-0156",
-    originalPrice: 0.5,
-    listingPrice: 0.55,
-    seller: "0xabcdef1234567890abcdef1234567890abcdef12",
-    listedAt: new Date("2025-02-03"),
-  },
-  {
-    id: "resale-3",
-    eventId: "2",
-    tierId: "2-weekend",
-    ticketId: 89,
-    seatId: "WKD-0089",
-    originalPrice: 2.2,
-    listingPrice: 2.4,
-    seller: "0x9876543210fedcba9876543210fedcba98765432",
-    listedAt: new Date("2025-02-05"),
-  },
-  {
-    id: "resale-4",
-    eventId: "3",
-    tierId: "3-premium",
-    ticketId: 23,
-    seatId: "PREM-0023",
-    originalPrice: 3.5,
-    listingPrice: 3.8,
-    seller: "0xfedcba9876543210fedcba9876543210fedcba98",
-    listedAt: new Date("2025-02-07"),
-  },
-];
+import { PriceDisplay } from "@/components/shared/PriceDisplay";
 
 export default function Resale() {
   const { isConnected } = useAccount();
@@ -219,9 +172,7 @@ export default function Resale() {
                     {/* Price & Buy */}
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-[#E8E3F5] sm:pl-4">
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-[#3D2870]">
-                          {formatXTZ(listing.listingPrice)}
-                        </p>
+                        <PriceDisplay xtzAmount={listing.listingPrice} size="lg" />
                         <div className="flex items-center text-xs text-gray-500">
                           <TrendingUp className="h-3 w-3 mr-1" />
                           +{markup}% from original

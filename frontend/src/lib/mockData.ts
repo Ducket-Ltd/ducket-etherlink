@@ -226,3 +226,68 @@ export function isEventSoldOut(event: MockEvent): boolean {
 export function getTicketsRemaining(tier: MockTicketTier): number {
   return tier.maxSupply - tier.sold;
 }
+
+// Mock resale listings
+export interface MockResaleListing {
+  id: string;
+  eventId: string;
+  tierId: string;
+  ticketId: number;
+  seatId: string;
+  originalPrice: number;
+  listingPrice: number;
+  seller: string;
+  listedAt: Date;
+}
+
+export const MOCK_RESALE_LISTINGS: MockResaleListing[] = [
+  {
+    id: "resale-1",
+    eventId: "1",
+    tierId: "1-vip",
+    ticketId: 42,
+    seatId: "VIP-0042",
+    originalPrice: 2.0,
+    listingPrice: 2.2,
+    seller: "0x1234567890abcdef1234567890abcdef12345678",
+    listedAt: new Date("2025-02-01"),
+  },
+  {
+    id: "resale-2",
+    eventId: "1",
+    tierId: "1-ga",
+    ticketId: 156,
+    seatId: "GA-0156",
+    originalPrice: 0.5,
+    listingPrice: 0.55,
+    seller: "0xabcdef1234567890abcdef1234567890abcdef12",
+    listedAt: new Date("2025-02-03"),
+  },
+  {
+    id: "resale-3",
+    eventId: "2",
+    tierId: "2-weekend",
+    ticketId: 89,
+    seatId: "WKD-0089",
+    originalPrice: 2.2,
+    listingPrice: 2.4,
+    seller: "0x9876543210fedcba9876543210fedcba98765432",
+    listedAt: new Date("2025-02-05"),
+  },
+  {
+    id: "resale-4",
+    eventId: "3",
+    tierId: "3-premium",
+    ticketId: 23,
+    seatId: "PREM-0023",
+    originalPrice: 3.5,
+    listingPrice: 3.8,
+    seller: "0xfedcba9876543210fedcba9876543210fedcba98",
+    listedAt: new Date("2025-02-07"),
+  },
+];
+
+// Helper to get resale listings for an event
+export function getResaleListingsForEvent(eventId: string): MockResaleListing[] {
+  return MOCK_RESALE_LISTINGS.filter((listing) => listing.eventId === eventId);
+}

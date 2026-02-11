@@ -3,8 +3,9 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Ticket, ArrowRight, CheckCircle, Shield, DollarSign, Blocks } from "lucide-react";
-import { MOCK_EVENTS, formatXTZ, isEventSoldOut } from "@/lib/mockData";
+import { MOCK_EVENTS, isEventSoldOut } from "@/lib/mockData";
 import { formatDate } from "@/lib/utils";
+import { PriceDisplay } from "@/components/shared/PriceDisplay";
 
 export default function Home() {
   return (
@@ -143,7 +144,7 @@ export default function Home() {
                     <CardFooter className="p-4 pt-0 flex items-center justify-between">
                       <div className="text-sm">
                         <span className="text-gray-500">From </span>
-                        <span className="font-semibold text-[#3D2870]">{formatXTZ(lowestPrice)}</span>
+                        <PriceDisplay xtzAmount={lowestPrice} size="sm" className="inline-flex" />
                       </div>
                       {event.resaleEnabled && (
                         <Badge variant="secondary" className="text-xs bg-[#F5F0FF] text-[#3D2870]">

@@ -13,11 +13,14 @@ import {
   Ticket,
   Shield,
   RefreshCw,
+  Tag,
+  TrendingUp,
 } from "lucide-react";
-import { getEventById, formatXTZ, getTicketsRemaining } from "@/lib/mockData";
-import { formatDateTime } from "@/lib/utils";
+import { getEventById, getTicketsRemaining, getResaleListingsForEvent, MOCK_EVENTS } from "@/lib/mockData";
+import { formatDateTime, truncateAddress } from "@/lib/utils";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { PriceDisplay } from "@/components/shared/PriceDisplay";
 
 export default function EventDetails() {
   const { id } = useParams<{ id: string }>();
@@ -142,6 +145,11 @@ export default function EventDetails() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Resale Listings Section */}
+          {event.resaleEnabled && (
+            <ResaleListingsSection eventId={event.id} maxResalePercentage={event.maxResalePercentage} />
+          )}
         </div>
 
         {/* Ticket Selection */}
@@ -176,7 +184,7 @@ export default function EventDetails() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-[#3D2870]">{formatXTZ(tier.price)}</p>
+                        <PriceDisplay xtzAmount={tier.price} size="sm" />
                         <p className="text-xs text-gray-500">
                           {soldOut ? "Sold out" : `${remaining} left`}
                         </p>
@@ -226,9 +234,7 @@ export default function EventDetails() {
               {selectedTierData && (
                 <div className="flex items-center justify-between py-2">
                   <span className="font-semibold text-[#1a1625]">Total</span>
-                  <span className="font-bold text-lg text-[#3D2870]">
-                    {formatXTZ(selectedTierData.price * quantity)}
-                  </span>
+                  <PriceDisplay xtzAmount={selectedTierData.price * quantity} size="md" />
                 </div>
               )}
 
@@ -269,5 +275,100 @@ export default function EventDetails() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Resale Listings Section Component
+function ResaleListingsSection({ eventId, maxResalePercentage }: { eventId: string; maxResalePercentage: number }) {
+  const { isConnected } = useAccount();
+  const resaleListings = getResaleListingsForEvent(eventId);
+
+  if (resaleListings.length === 0) {
+    return (
+      <Card className="border-[#E8E3F5]">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center text-[#1a1625]">
+            <Tag className="h-5 w-5 mr-2 text-[#3D2870]" />
+            Resale Marketplace
+            <Badge className="ml-2 bg-[#F5F0FF] text-[#3D2870]">
+              {maxResalePercentage}% cap
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 text-center py-4">
+            No tickets listed for resale yet.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-[#E8E3F5]">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center text-[#1a1625]">
+          <Tag className="h-5 w-5 mr-2 text-[#3D2870]" />
+          Resale Marketplace
+          <Badge className="ml-2 bg-[#F5F0FF] text-[#3D2870]">
+            {maxResalePercentage}% cap
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {resaleListings.map((listing) => {
+          const event = MOCK_EVENTS.find((e) => e.id === listing.eventId);
+          const tier = event?.ticketTiers.find((t) => t.id === listing.tierId);
+          const markup = Math.round(
+            ((listing.listingPrice - listing.originalPrice) / listing.originalPrice) * 100
+          );
+
+          return (
+            <div
+              key={listing.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="outline" className="border-[#3D2870] text-[#3D2870]">
+                    {tier?.name || "Unknown"}
+                  </Badge>
+                  <span className="text-xs text-gray-500">#{listing.seatId}</span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Seller: {truncateAddress(listing.seller)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <PriceDisplay xtzAmount={listing.listingPrice} size="sm" />
+                  <div className="flex items-center text-xs text-gray-500">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    +{markup}% from original
+                  </div>
+                </div>
+                {isConnected ? (
+                  <Button size="sm" className="bg-[#3D2870] hover:bg-[#6B5B95]">
+                    Buy
+                  </Button>
+                ) : (
+                  <ConnectButton.Custom>
+                    {({ openConnectModal }) => (
+                      <Button
+                        size="sm"
+                        className="bg-[#3D2870] hover:bg-[#6B5B95]"
+                        onClick={openConnectModal}
+                      >
+                        Connect
+                      </Button>
+                    )}
+                  </ConnectButton.Custom>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

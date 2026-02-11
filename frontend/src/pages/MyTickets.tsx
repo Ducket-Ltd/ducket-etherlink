@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, Calendar, MapPin, QrCode, ExternalLink } from "lucide-react";
+import { Ticket, Calendar, MapPin, QrCode, ExternalLink, Tag, Send } from "lucide-react";
 import { MOCK_EVENTS } from "@/lib/mockData";
 import { formatDate } from "@/lib/utils";
+import { TransferModal } from "@/components/shared/TransferModal";
+import { ResaleListingModal } from "@/components/resale/ResaleListingModal";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock user's tickets - in production this would come from on-chain data
 const MOCK_USER_TICKETS = [
@@ -26,8 +30,40 @@ const MOCK_USER_TICKETS = [
   },
 ];
 
+interface SelectedTicket {
+  id: string;
+  eventName: string;
+  tierName: string;
+  originalPrice: number;
+  maxResalePercentage: number;
+}
+
 export default function MyTickets() {
   const { isConnected, address } = useAccount();
+  const { toast } = useToast();
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [resaleModalOpen, setResaleModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null);
+
+  const handleTransfer = async (recipientAddress: string) => {
+    // Simulate transfer - in production this would call the smart contract
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    toast({
+      title: "Transfer Complete",
+      description: "Your ticket has been transferred successfully.",
+    });
+    return { success: true, txHash: "0x" + Math.random().toString(16).slice(2) };
+  };
+
+  const handleListForResale = async (price: number) => {
+    // Simulate listing - in production this would call the smart contract
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    toast({
+      title: "Listed for Resale",
+      description: `Your ticket is now listed for ${price.toFixed(2)} XTZ.`,
+    });
+    return { success: true, txHash: "0x" + Math.random().toString(16).slice(2) };
+  };
 
   if (!isConnected) {
     return (
@@ -127,15 +163,55 @@ export default function MyTickets() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
+                        className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
                       >
-                        <QrCode className="h-4 w-4 mr-2" />
-                        Show QR
+                        <QrCode className="h-4 w-4 mr-1" />
+                        QR
                       </Button>
+                      {ticket.event!.transferEnabled && !isPast && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
+                          onClick={() => {
+                            setSelectedTicket({
+                              id: ticket.seatId,
+                              eventName: ticket.event!.name,
+                              tierName: ticket.tier!.name,
+                              originalPrice: ticket.tier!.price,
+                              maxResalePercentage: ticket.event!.maxResalePercentage,
+                            });
+                            setTransferModalOpen(true);
+                          }}
+                        >
+                          <Send className="h-4 w-4 mr-1" />
+                          Transfer
+                        </Button>
+                      )}
+                      {ticket.event!.resaleEnabled && !isPast && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
+                          onClick={() => {
+                            setSelectedTicket({
+                              id: ticket.seatId,
+                              eventName: ticket.event!.name,
+                              tierName: ticket.tier!.name,
+                              originalPrice: ticket.tier!.price,
+                              maxResalePercentage: ticket.event!.maxResalePercentage,
+                            });
+                            setResaleModalOpen(true);
+                          }}
+                        >
+                          <Tag className="h-4 w-4 mr-1" />
+                          List for Resale
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" className="text-[#3D2870] hover:bg-[#F5F0FF]">
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -168,6 +244,38 @@ export default function MyTickets() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Transfer Modal */}
+      {selectedTicket && (
+        <TransferModal
+          isOpen={transferModalOpen}
+          onClose={() => {
+            setTransferModalOpen(false);
+            setSelectedTicket(null);
+          }}
+          ticketId={selectedTicket.id}
+          eventName={selectedTicket.eventName}
+          tierName={selectedTicket.tierName}
+          onTransfer={handleTransfer}
+        />
+      )}
+
+      {/* Resale Listing Modal */}
+      {selectedTicket && (
+        <ResaleListingModal
+          isOpen={resaleModalOpen}
+          onClose={() => {
+            setResaleModalOpen(false);
+            setSelectedTicket(null);
+          }}
+          ticketId={selectedTicket.id}
+          eventName={selectedTicket.eventName}
+          tierName={selectedTicket.tierName}
+          originalPrice={selectedTicket.originalPrice}
+          maxResalePercentage={selectedTicket.maxResalePercentage}
+          onList={handleListForResale}
+        />
+      )}
     </main>
   );
 }
