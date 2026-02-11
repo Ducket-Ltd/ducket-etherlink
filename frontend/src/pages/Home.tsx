@@ -165,37 +165,37 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-1.5 rounded-full bg-white text-[#3D2870] text-sm font-medium mb-4">
-              Features
+              Blockchain-Powered
             </span>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Why NFT Tickets?
+              Ticketing, Reimagined
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              We're building ticketing the way it should be - fair, transparent, and stress-free.
+              Smart contracts enforce fair pricing. Your wallet holds your tickets. No middlemen, no scalpers.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
             {[
               {
                 icon: Shield,
                 title: "Verified Tickets",
-                description: "Every ticket is cryptographically verified on the blockchain. No fakes, no scams, just real tickets.",
+                description: "Every ticket is an NFT on Etherlink. Cryptographically verified, impossible to counterfeit.",
               },
               {
                 icon: DollarSign,
-                title: "Price Protection",
-                description: "Organizers set max resale prices, preventing scalping while allowing fair resales.",
+                title: "Price-Capped Resale",
+                description: "Resale limits enforced by smart contracts, not policies. Scalping is mathematically impossible.",
               },
               {
                 icon: Ticket,
-                title: "Easy Entry",
-                description: "Show your QR code at the venue. Your ticket is always with you in your wallet.",
+                title: "Your Wallet, Your Tickets",
+                description: "Non-custodial ownership. Your tickets live in your wallet, only you control them.",
               },
               {
                 icon: Blocks,
-                title: "Etherlink Powered",
-                description: "Fast finality and low fees on Etherlink make ticketing seamless and affordable.",
+                title: "Built on Etherlink",
+                description: "EVM-compatible L2 with sub-second finality, sub-cent fees, and MEV protection.",
               },
             ].map((feature, index) => (
               <div

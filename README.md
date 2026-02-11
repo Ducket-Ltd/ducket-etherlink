@@ -1,18 +1,29 @@
 # Ducket on Etherlink
 
-NFT Ticketing Platform built on Etherlink - demonstrating secure, anti-scalping event tickets with price-capped resale.
+**Fair Ticketing for Everyone**
 
-## Overview
+No scalpers. No hidden fees. No stress.
 
-Ducket is a blockchain-based ticketing platform that solves the ticket scalping problem using NFTs with enforced resale price caps. This demo version is built specifically for the Etherlink blockchain.
+## The Vision
 
-### Features
+Ducket is reimagining ticketing — making it fair, transparent, and secure for everyone. Built on Etherlink, an EVM-compatible Layer 2 in the Tezos ecosystem, this platform demonstrates how smart contracts can solve the broken ticketing industry.
 
-- **NFT Tickets**: Each ticket is a unique ERC-1155 token on Etherlink
-- **Anti-Scalping**: Organizers set maximum resale prices (e.g., 110% of original)
-- **Fair Resale**: Built-in marketplace with enforced price caps
-- **Instant Transfers**: Fast finality on Etherlink means instant ticket transfers
-- **Low Fees**: Etherlink's efficient L2 keeps transaction costs minimal
+### The Problem
+
+Ticket scalping ruins live events. Fans pay inflated prices while bots and resellers profit. Traditional ticketing platforms rely on policies that are easily circumvented — they can't actually prevent scalping.
+
+### The Solution
+
+Every Ducket ticket is an NFT with smart contract-enforced resale caps. The code itself prevents unfair pricing — scalping becomes mathematically impossible, not just against the rules.
+
+## Features
+
+- **Verified Tickets**: Every ticket is an ERC-1155 NFT — cryptographically verified, impossible to counterfeit
+- **Transparent Pricing**: What you see is what you pay. No hidden fees, no surprises
+- **Price-Capped Resale**: Resale limits enforced by smart contracts, not policies. Scalping is mathematically impossible
+- **Non-Custodial**: Your tickets live in your wallet. Only you control them — we never hold your assets
+- **Instant Finality**: Sub-second confirmations mean your purchase is final the moment you click
+- **Negligible Fees**: Transaction costs under $0.001 — fees never exceed the ticket value
 
 ## Project Structure
 
@@ -80,26 +91,53 @@ Native currency: **XTZ** (18 decimals)
 
 | Network | Contract | Address |
 |---------|----------|---------|
-| Shadownet | EventTicketNFTV2 | `0x931078294575b64b990F9235ba99Ca6F4905F339` |
+| Shadownet | EventTicketNFTV2 | `0x6eE88cA6958547131d6552d1626a8730b1FaF554` |
+
+## How It Works
+
+1. **Find an Event** — Browse upcoming concerts, festivals, and experiences
+2. **Purchase Tickets** — Connect your wallet and buy tickets directly on-chain
+3. **Get Your Tickets** — NFT tickets are instantly minted to your wallet
+4. **Resell Fairly** — List tickets on the built-in marketplace at fair, capped prices
+
+### Demo Mode
+
+This demo includes an auto-refund feature — your XTZ is returned after purchase while you keep the NFT ticket. This lets you experience the full flow without spending real funds.
 
 ## Smart Contract Architecture
 
 ### EventTicketNFTV2
 
-The main contract implements:
+The core smart contract that powers fair ticketing:
 
-- **Event Management**: Organizers create events with configurable rules
-- **Ticket Tiers**: Multiple price tiers per event (GA, VIP, etc.)
-- **Minting**: Platform mints tickets on behalf of buyers
-- **Resale Marketplace**: Built-in listing and purchasing with price caps
-- **Access Control**: Role-based permissions (ADMIN, MINTER)
+- **Event Management**: Organizers create events with configurable rules and resale caps
+- **Ticket Tiers**: Multiple price tiers per event (General Admission, VIP, etc.)
+- **Public Purchase**: Anyone can buy tickets directly — no intermediaries
+- **Resale Marketplace**: Built-in peer-to-peer marketplace with enforced price caps
+- **Transfer Controls**: Organizers can enable/disable ticket transfers per event
 
 Key functions:
-- `createEvent()` - Create new event with rules
-- `createTicketTier()` - Add ticket tier to event
-- `mintTicket()` - Mint tickets (requires MINTER_ROLE)
-- `listForResale()` - List ticket on marketplace
-- `buyResaleTicket()` - Purchase from marketplace
+- `purchaseTicket()` - Buy tickets directly (public)
+- `listForResale()` - List your ticket on the marketplace
+- `buyResaleTicket()` - Purchase from another fan at a fair price
+- `cancelResaleListing()` - Remove your listing
+
+## Why Etherlink?
+
+Etherlink is an EVM-compatible Layer 2 that brings Ethereum-grade smart contracts to the Tezos ecosystem.
+
+- **Sub-second finality** — Transactions confirm instantly, no waiting for your tickets
+- **Sub-cent fees** — Gas costs under $0.001, making microtransactions viable
+- **EVM & Solidity** — Write contracts in Solidity, use MetaMask, leverage Ethereum tooling
+- **MEV protection** — Fair transaction ordering prevents bots from front-running fans
+- **Tezos security** — Inherits the security and decentralization of the Tezos network
+
+## Tech Stack
+
+- **Smart Contracts**: Solidity, Hardhat, OpenZeppelin
+- **Frontend**: React, Vite, TypeScript
+- **Blockchain**: wagmi v2, viem, RainbowKit
+- **Styling**: Tailwind CSS, shadcn/ui
 
 ## License
 
@@ -107,4 +145,6 @@ MIT
 
 ---
 
-Built for the Etherlink Hackathon by Fortify Labs
+Built on Etherlink by the Ducket team
+
+[View Demo](https://ducket-etherlink.vercel.app) · [View Contract on Explorer](https://shadownet.explorer.etherlink.com/address/0x6eE88cA6958547131d6552d1626a8730b1FaF554)

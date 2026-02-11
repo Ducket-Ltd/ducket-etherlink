@@ -89,78 +89,124 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* Resale Caps Section */}
+      {/* Smart Contract Guarantees Section */}
       <section className="container mx-auto px-4 py-12 bg-[#F5F0FF]">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1a1625] mb-4 text-center">
-            Resale Caps Enforced by Code
+            Protocol-Level Guarantees
           </h2>
           <p className="text-gray-600 text-center mb-8 max-w-2xl mx-auto">
-            Unlike policy-based resale limits that can be ignored, Ducket's price caps
-            are enforced at the smart contract level. It's physically impossible to
-            list a ticket above the cap.
+            Our Solidity smart contract deployed on Etherlink enforces these rules trustlessly.
+            
           </p>
 
-          <Card className="border-[#E8E3F5] bg-white">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Code className="h-5 w-5 text-[#3D2870]" />
-                <CardTitle className="text-base font-mono">Solidity Smart Contract</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
-{`function listForResale(uint256 ticketId, uint256 price) external {
-    require(ownerOf(ticketId) == msg.sender, "Not ticket owner");
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="border-[#E8E3F5] bg-white">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3D2870] flex items-center justify-center flex-shrink-0">
+                    <DollarSign className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#1a1625] mb-1">Hardcoded Price Caps</h3>
+                    <p className="text-sm text-gray-600">
+                      Resale prices are bounded by an on-chain cap (e.g., 150% of mint price).
+                      Transactions exceeding this threshold revert automatically.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-    // Price cap is enforced here - cannot exceed 150% of original
-    require(
-        price <= (originalPrice[ticketId] * resaleCapPercent) / 100,
-        "Exceeds resale cap"
-    );
+            <Card className="border-[#E8E3F5] bg-white">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3D2870] flex items-center justify-center flex-shrink-0">
+                    <Shield className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#1a1625] mb-1">Cryptographic Ownership</h3>
+                    <p className="text-sm text-gray-600">
+                      Only the wallet holding the NFT can execute transfers or listings.
+                      Ownership is verified via on-chain state with every call.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-    isListed[ticketId] = true;
-    resalePrice[ticketId] = price;
+            <Card className="border-[#E8E3F5] bg-white">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3D2870] flex items-center justify-center flex-shrink-0">
+                    <Lock className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#1a1625] mb-1">Per-Wallet Mint Limits</h3>
+                    <p className="text-sm text-gray-600">
+                      Configurable max mint per address prevents Sybil attacks and bot accumulation.
+                      Enforced at the contract level before token minting.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-    emit TicketListedForResale(msg.sender, ticketId, price);
-}`}
-              </pre>
-              <p className="text-sm text-gray-500 mt-4">
-                This code runs on every resale listing. If the price exceeds the cap,
-                the transaction is rejected by the blockchain itself — no exceptions.
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-[#E8E3F5] bg-white">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#3D2870] flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#1a1625] mb-1">Time-Locked Resale</h3>
+                    <p className="text-sm text-gray-600">
+                      Organizers can set a block timestamp before which resale is disabled.
+                      Prevents immediate secondary market speculation post-mint.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-6">
+            All logic executes on Etherlink's EVM. Contract source is verified and publicly auditable.
+          </p>
         </div>
       </section>
 
       {/* Why Etherlink Section */}
       <section className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1a1625] mb-8 text-center">
+          <h2 className="text-2xl font-bold text-[#1a1625] mb-4 text-center">
             Why Etherlink?
           </h2>
+          <p className="text-gray-600 text-center mb-8 max-w-2xl mx-auto">
+            Etherlink is an EVM-compatible Layer 2 that brings Ethereum-grade smart contracts
+            to the Tezos ecosystem — with faster finality, lower fees, and built-in fairness guarantees.
+          </p>
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="border-[#E8E3F5]">
               <CardHeader>
                 <Zap className="h-8 w-8 text-yellow-500 mb-2" />
-                <CardTitle className="text-lg">Sub-Second Confirmations</CardTitle>
+                <CardTitle className="text-lg">Sub-Second Finality</CardTitle>
               </CardHeader>
               <CardContent className="text-gray-600">
-                Tickets are confirmed in under a second. No waiting 15 seconds like
-                Ethereum mainnet — your purchase is instant.
+                Transactions confirm in under a second. No waiting, no uncertainty —
+                your ticket purchase is instant and final.
               </CardContent>
             </Card>
 
             <Card className="border-[#E8E3F5]">
               <CardHeader>
                 <DollarSign className="h-8 w-8 text-green-500 mb-2" />
-                <CardTitle className="text-lg">Sub-Cent Transaction Fees</CardTitle>
+                <CardTitle className="text-lg">Sub-Cent Fees</CardTitle>
               </CardHeader>
               <CardContent className="text-gray-600">
-                Buying a ticket costs less than $0.001 in gas fees. You'll never
-                pay more in fees than the ticket is worth.
+                Gas costs under $0.001 per transaction. Buy, sell, and transfer
+                tickets without worrying about fees eating into the price.
               </CardContent>
             </Card>
 
@@ -170,19 +216,19 @@ export default function HowItWorks() {
                 <CardTitle className="text-lg">MEV Protection</CardTitle>
               </CardHeader>
               <CardContent className="text-gray-600">
-                Etherlink's architecture prevents front-running. Bots can't jump
-                ahead of you in line to snag tickets first.
+                Fair transaction ordering prevents front-running. Bots can't
+                jump ahead in the queue to snag tickets before real fans.
               </CardContent>
             </Card>
 
             <Card className="border-[#E8E3F5]">
               <CardHeader>
-                <Clock className="h-8 w-8 text-purple-500 mb-2" />
-                <CardTitle className="text-lg">EVM Compatible</CardTitle>
+                <Code className="h-8 w-8 text-purple-500 mb-2" />
+                <CardTitle className="text-lg">EVM & Solidity</CardTitle>
               </CardHeader>
               <CardContent className="text-gray-600">
-                Built on the same technology as Ethereum. Your MetaMask wallet
-                works out of the box — no new tools to learn.
+                100% EVM-compatible. Write smart contracts in Solidity, use MetaMask,
+                and leverage the entire Ethereum tooling ecosystem.
               </CardContent>
             </Card>
           </div>
