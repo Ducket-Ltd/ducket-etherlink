@@ -34,7 +34,7 @@ export default function Home() {
 
           {/* Main headline */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 max-w-4xl mx-auto leading-tight text-[#1a1625]">
-            Fair Ticketing for{" "}
+            Fair Ticketing for dogs
             <span className="gradient-text">
               Everyone
             </span>
