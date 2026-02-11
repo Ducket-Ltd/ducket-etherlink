@@ -34,7 +34,7 @@ export default function Home() {
 
           {/* Main headline */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 max-w-4xl mx-auto leading-tight text-[#1a1625]">
-            Fair Ticketing for dogs
+            Fair Ticketing for{" "}
             <span className="gradient-text">
               Everyone
             </span>
@@ -175,7 +175,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {[
               {
                 icon: Shield,
