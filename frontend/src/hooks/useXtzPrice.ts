@@ -1,66 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
-interface XtzPriceData {
-  usd: number;
-  lastUpdated: number;
-}
-
-// Fallback price if API fails (~$1.20 USD per XTZ)
+// Fallback price (~$1.20 USD per XTZ) - used for demo
+// In production, this would be fetched from a backend proxy to avoid CORS issues
 const FALLBACK_XTZ_PRICE = 1.20;
-const CACHE_DURATION = 60 * 1000; // 60 seconds
-
-let cachedPrice: XtzPriceData | null = null;
 
 export function useXtzPrice() {
-  const [price, setPrice] = useState<number>(cachedPrice?.usd ?? FALLBACK_XTZ_PRICE);
-  const [isLoading, setIsLoading] = useState(!cachedPrice);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      // Check if we have a valid cached price
-      if (cachedPrice && Date.now() - cachedPrice.lastUpdated < CACHE_DURATION) {
-        setPrice(cachedPrice.usd);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd'
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch price');
-        }
-
-        const data = await response.json();
-        const usdPrice = data.tezos?.usd ?? FALLBACK_XTZ_PRICE;
-
-        // Update cache
-        cachedPrice = {
-          usd: usdPrice,
-          lastUpdated: Date.now(),
-        };
-
-        setPrice(usdPrice);
-        setError(null);
-      } catch (err) {
-        console.warn('Failed to fetch XTZ price, using fallback:', err);
-        setPrice(FALLBACK_XTZ_PRICE);
-        setError('Using estimated price');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPrice();
-
-    // Refresh price every 60 seconds
-    const interval = setInterval(fetchPrice, CACHE_DURATION);
-    return () => clearInterval(interval);
-  }, []);
+  // For demo purposes, we use a static price to avoid CORS issues with CoinGecko API
+  // The CoinGecko public API blocks browser requests (CORS)
+  // In production, you would proxy this through your backend
+  const [price] = useState<number>(FALLBACK_XTZ_PRICE);
+  const [isLoading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   // Convert XTZ amount to USD
   const convertXtzToFiat = useCallback((xtzAmount: number): number => {

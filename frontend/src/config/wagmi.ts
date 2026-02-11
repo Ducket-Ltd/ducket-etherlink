@@ -98,7 +98,18 @@ export const CONTRACT_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
-  // Minting
+  // Public purchase (anyone can call)
+  {
+    inputs: [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+    ],
+    name: 'purchaseTicket',
+    outputs: [{ name: '', type: 'uint256[]' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  // Minting (MINTER_ROLE only)
   {
     inputs: [
       { name: 'tokenId', type: 'uint256' },
@@ -108,6 +119,14 @@ export const CONTRACT_ABI = [
     name: 'mintTicket',
     outputs: [{ name: '', type: 'uint256[]' }],
     stateMutability: 'payable',
+    type: 'function',
+  },
+  // Demo mode check
+  {
+    inputs: [],
+    name: 'demoMode',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
     type: 'function',
   },
   // Resale

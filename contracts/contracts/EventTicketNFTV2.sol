@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// DEMO MODE: Auto-refund enabled for Fortify Labs evaluation.
+// In production, funds are held in escrow until post-event settlement.
+// See "Production Migration" section in docs for the full escrow model.
+
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
@@ -11,7 +15,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
  * @title EventTicketNFTV2
  * @author Ducket
  * @notice Multi-event NFT ticketing with per-event rules, seat management, and resale controls
- * @dev ERC1155 with enhanced event configuration, wallet limits, and transfer restrictions
+ * @dev ERC1155 with enhanced event configuration, wallet limits, transfer restrictions, and demo mode
  */
 contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGuard {
     using Strings for uint256;
@@ -116,6 +120,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     uint256 public maxEventSupply = 100000;         // Platform-wide max per event
     uint256 public maxTicketsPerTransaction = 10;   // Max per mint call
     bool public globalPause = false;                // Emergency global pause
+    bool public demoMode = true;                    // Demo mode: auto-refund purchases
 
     // ============================================================================
     // EVENTS
@@ -171,6 +176,8 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     event ResaleListingCancelled(uint256 indexed ticketId);
     event OrganizerVerified(address indexed organizer, bool verified);
     event GlobalPauseSet(bool paused);
+    event DemoModeSet(bool enabled);
+    event DemoRefund(address indexed recipient, uint256 amount);
 
     // ============================================================================
     // MODIFIERS
@@ -390,11 +397,79 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     }
 
     // ============================================================================
-    // MINTING
+    // PUBLIC PURCHASE (Demo)
     // ============================================================================
 
     /**
-     * @notice Mint tickets with auto-generated seat IDs
+     * @notice Public purchase function - anyone can buy tickets directly
+     * @dev This is for demo purposes. In production, purchases go through backend.
+     * @param tokenId Tier token ID
+     * @param quantity Number of tickets to purchase
+     * @return ticketIds Array of purchased ticket IDs
+     */
+    function purchaseTicket(
+        uint256 tokenId,
+        uint256 quantity
+    ) external payable nonReentrant tierExists(tokenId) returns (uint256[] memory) {
+        require(quantity > 0 && quantity <= maxTicketsPerTransaction, "Invalid quantity");
+
+        TicketTier storage tier = ticketTiers[tokenId];
+        uint256 eventId = tier.eventId;
+        EventConfig storage evt = events[eventId];
+
+        require(!evt.paused && !evt.cancelled && !globalPause, "Purchasing disabled");
+        require(tier.minted + quantity <= tier.maxSupply, "Tier sold out");
+        require(evt.mintedCount + quantity <= evt.totalSupply, "Event sold out");
+
+        // Check wallet limit
+        if (evt.maxTicketsPerWallet > 0) {
+            require(
+                eventPurchases[eventId][msg.sender] + quantity <= evt.maxTicketsPerWallet,
+                "Wallet limit exceeded"
+            );
+        }
+
+        // Check payment
+        uint256 totalPrice = tier.price * quantity;
+        require(msg.value >= totalPrice, "Insufficient payment");
+
+        // Mint ERC1155 tokens to the buyer
+        _mint(msg.sender, tokenId, quantity, "");
+
+        // Create individual ticket records
+        uint256[] memory ticketIds = _createTicketRecords(
+            tokenId, msg.sender, quantity, eventId, tier.seatPrefix, tier.price, tier.minted
+        );
+
+        tier.minted += quantity;
+        evt.mintedCount += quantity;
+        eventPurchases[eventId][msg.sender] += quantity;
+
+        if (demoMode) {
+            // Demo mode: refund the entire payment to the buyer
+            (bool refunded, ) = msg.sender.call{value: msg.value}("");
+            require(refunded, "Demo refund failed");
+            emit DemoRefund(msg.sender, msg.value);
+        } else {
+            // Production: distribute payment to organizer
+            _distributePayment(evt.organizer, totalPrice, platformFeePrimary);
+
+            // Refund excess
+            if (msg.value > totalPrice) {
+                (bool refunded, ) = msg.sender.call{value: msg.value - totalPrice}("");
+                require(refunded, "Refund failed");
+            }
+        }
+
+        return ticketIds;
+    }
+
+    // ============================================================================
+    // MINTING (Backend Only)
+    // ============================================================================
+
+    /**
+     * @notice Mint tickets with auto-generated seat IDs (MINTER_ROLE only)
      * @param tokenId Tier token ID
      * @param to Recipient address
      * @param quantity Number of tickets to mint
@@ -439,13 +514,20 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
         evt.mintedCount += quantity;
         eventPurchases[eventId][to] += quantity;
 
-        // Distribute payment
-        _distributePayment(evt.organizer, totalPrice, platformFeePrimary);
+        if (demoMode) {
+            // Demo mode: refund the entire payment to the buyer
+            (bool refunded, ) = msg.sender.call{value: msg.value}("");
+            require(refunded, "Demo refund failed");
+            emit DemoRefund(msg.sender, msg.value);
+        } else {
+            // Production: distribute payment to organizer
+            _distributePayment(evt.organizer, totalPrice, platformFeePrimary);
 
-        // Refund excess
-        if (msg.value > totalPrice) {
-            (bool refunded, ) = msg.sender.call{value: msg.value - totalPrice}("");
-            require(refunded, "Refund failed");
+            // Refund excess
+            if (msg.value > totalPrice) {
+                (bool refunded, ) = msg.sender.call{value: msg.value - totalPrice}("");
+                require(refunded, "Refund failed");
+            }
         }
 
         return ticketIds;
@@ -519,13 +601,20 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
 
         emit TicketMinted(ticketId, eventId, tokenId, to, seatIdentifier, tier.price);
 
-        // Distribute payment
-        _distributePayment(evt.organizer, tier.price, platformFeePrimary);
+        if (demoMode) {
+            // Demo mode: refund the entire payment to the buyer
+            (bool refunded, ) = msg.sender.call{value: msg.value}("");
+            require(refunded, "Demo refund failed");
+            emit DemoRefund(msg.sender, msg.value);
+        } else {
+            // Production: distribute payment
+            _distributePayment(evt.organizer, tier.price, platformFeePrimary);
 
-        // Refund excess
-        if (msg.value > tier.price) {
-            (bool refunded, ) = msg.sender.call{value: msg.value - tier.price}("");
-            require(refunded, "Refund failed");
+            // Refund excess
+            if (msg.value > tier.price) {
+                (bool refunded, ) = msg.sender.call{value: msg.value - tier.price}("");
+                require(refunded, "Refund failed");
+            }
         }
 
         return ticketId;
@@ -563,10 +652,17 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
             _mintInternal(tokenIds[i], recipients[i], quantities[i]);
         }
 
-        // Refund excess
-        if (msg.value > totalRequired) {
-            (bool refunded, ) = msg.sender.call{value: msg.value - totalRequired}("");
-            require(refunded, "Refund failed");
+        if (demoMode) {
+            // Demo mode: refund the entire payment
+            (bool refunded, ) = msg.sender.call{value: msg.value}("");
+            require(refunded, "Demo refund failed");
+            emit DemoRefund(msg.sender, msg.value);
+        } else {
+            // Refund excess in production mode
+            if (msg.value > totalRequired) {
+                (bool refunded, ) = msg.sender.call{value: msg.value - totalRequired}("");
+                require(refunded, "Refund failed");
+            }
         }
     }
 
@@ -637,13 +733,20 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
         ticketOwners[ticketId] = msg.sender;
         _userEventTickets[msg.sender][ticket.eventId].push(ticketId);
 
-        // Distribute payment
-        _distributePayment(seller, price, platformFeeResale);
+        if (demoMode) {
+            // Demo mode: refund the entire payment to the buyer
+            (bool refunded, ) = msg.sender.call{value: msg.value}("");
+            require(refunded, "Demo refund failed");
+            emit DemoRefund(msg.sender, msg.value);
+        } else {
+            // Production: pay the seller (minus platform fee)
+            _distributePayment(seller, price, platformFeeResale);
 
-        // Refund excess
-        if (msg.value > price) {
-            (bool refunded, ) = msg.sender.call{value: msg.value - price}("");
-            require(refunded, "Refund failed");
+            // Refund excess
+            if (msg.value > price) {
+                (bool refunded, ) = msg.sender.call{value: msg.value - price}("");
+                require(refunded, "Refund failed");
+            }
         }
 
         emit TicketResold(ticketId, seller, msg.sender, price);
@@ -795,6 +898,15 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     function setGlobalPause(bool paused) external onlyRole(DEFAULT_ADMIN_ROLE) {
         globalPause = paused;
         emit GlobalPauseSet(paused);
+    }
+
+    /**
+     * @notice Set demo mode (auto-refund on purchases)
+     * @param enabled Enable or disable demo mode
+     */
+    function setDemoMode(bool enabled) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        demoMode = enabled;
+        emit DemoModeSet(enabled);
     }
 
     /**
@@ -954,8 +1066,11 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
         evt.mintedCount += quantity;
         eventPurchases[eventId][to] += quantity;
 
-        // Distribute payment
-        _distributePayment(evt.organizer, tier.price * quantity, platformFeePrimary);
+        if (!demoMode) {
+            // Production: distribute payment to organizer
+            _distributePayment(evt.organizer, tier.price * quantity, platformFeePrimary);
+        }
+        // Note: In demo mode, refund is handled at the mintBatch caller level
     }
 
     // ============================================================================

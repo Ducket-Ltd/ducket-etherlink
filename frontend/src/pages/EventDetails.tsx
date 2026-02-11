@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseEther } from "viem";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,12 +16,16 @@ import {
   RefreshCw,
   Tag,
   TrendingUp,
+  Loader2,
+  CheckCircle,
 } from "lucide-react";
 import { getEventById, getTicketsRemaining, getResaleListingsForEvent, MOCK_EVENTS } from "@/lib/mockData";
 import { formatDateTime, truncateAddress } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { PriceDisplay } from "@/components/shared/PriceDisplay";
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/wagmi";
+import { ExplorerLink } from "@/components/shared/ExplorerLink";
 
 export default function EventDetails() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +33,43 @@ export default function EventDetails() {
   const { toast } = useToast();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+
+  // Contract write hook
+  const { writeContract, isPending: isWritePending, error: writeError } = useWriteContract();
+
+  // Wait for transaction receipt
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  const isPurchasing = isWritePending || isConfirming;
+
+  // Show success toast when confirmed
+  useEffect(() => {
+    if (isConfirmed && txHash) {
+      toast({
+        title: "Purchase Successful!",
+        description: "Your ticket has been minted. XTZ has been refunded (demo mode).",
+      });
+      setSelectedTier(null);
+      setQuantity(1);
+      setTxHash(undefined);
+    }
+  }, [isConfirmed, txHash, toast]);
+
+  // Show error toast
+  useEffect(() => {
+    if (writeError) {
+      toast({
+        title: "Purchase Failed",
+        description: writeError.message.includes("User rejected")
+          ? "Transaction was cancelled"
+          : "Failed to purchase ticket. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [writeError, toast]);
 
   const event = getEventById(id || "");
 
@@ -49,21 +90,30 @@ export default function EventDetails() {
   const selectedTierData = event.ticketTiers.find((t) => t.id === selectedTier);
 
   const handlePurchase = async () => {
-    if (!selectedTierData) return;
+    if (!selectedTierData || !isConnected) return;
 
-    setIsPurchasing(true);
+    // Calculate total price in wei (XTZ has 18 decimals like ETH)
+    const totalPrice = selectedTierData.price * quantity;
 
-    // Simulate purchase - in production this would call the smart contract
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    toast({
-      title: "Purchase Successful!",
-      description: `You've purchased ${quantity}x ${selectedTierData.name} ticket(s)`,
-    });
-
-    setIsPurchasing(false);
-    setSelectedTier(null);
-    setQuantity(1);
+    try {
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'purchaseTicket',
+        args: [BigInt(selectedTierData.tokenId), BigInt(quantity)],
+        value: parseEther(totalPrice.toString()),
+      }, {
+        onSuccess: (hash) => {
+          setTxHash(hash);
+          toast({
+            title: "Transaction Submitted",
+            description: "Waiting for confirmation...",
+          });
+        },
+      });
+    } catch (err) {
+      console.error('Purchase error:', err);
+    }
   };
 
   return (
@@ -246,7 +296,14 @@ export default function EventDetails() {
                   disabled={!selectedTier || isPurchasing}
                   onClick={handlePurchase}
                 >
-                  {isPurchasing ? "Processing..." : "Purchase Tickets"}
+                  {isPurchasing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isConfirming ? "Confirming..." : "Submitting..."}
+                    </>
+                  ) : (
+                    "Purchase Tickets"
+                  )}
                 </Button>
               ) : (
                 <div className="text-center">

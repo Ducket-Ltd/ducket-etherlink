@@ -1,7 +1,8 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  console.log("Deploying EventTicketNFT contract to Etherlink...");
+  console.log("Deploying EventTicketNFTV2 contract to Etherlink...");
+  console.log("(Demo mode enabled - purchases auto-refund XTZ)");
 
   const [deployer] = await ethers.getSigners();
   console.log("Deploying with account:", deployer.address);
@@ -22,13 +23,14 @@ async function main() {
 
   // Deploy contract
   console.log("\nDeploying contract...");
-  const EventTicketNFT = await ethers.getContractFactory("EventTicketNFT");
-  const contract = await EventTicketNFT.deploy(platformWallet);
+  const EventTicketNFTV2 = await ethers.getContractFactory("EventTicketNFTV2");
+  const contract = await EventTicketNFTV2.deploy(platformWallet);
 
   await contract.waitForDeployment();
   const contractAddress = await contract.getAddress();
 
-  console.log("EventTicketNFT deployed to:", contractAddress);
+  console.log("EventTicketNFTV2 deployed to:", contractAddress);
+  console.log("Demo mode:", await contract.demoMode() ? "ENABLED" : "DISABLED");
 
   // Grant MINTER_ROLE to your backend service address if specified
   const backendMinterAddress = process.env.BACKEND_MINTER_ADDRESS;
