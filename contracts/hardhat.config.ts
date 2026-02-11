@@ -5,11 +5,25 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-// Helper to ensure private key has 0x prefix
+// Helper to normalize private key
 function getPrivateKey(): string[] {
-  const key = process.env.DEPLOYER_PRIVATE_KEY;
+  let key = process.env.DEPLOYER_PRIVATE_KEY;
   if (!key) return [];
-  return [key.startsWith("0x") ? key : `0x${key}`];
+
+  // Trim whitespace and remove any quotes
+  key = key.trim().replace(/['"]/g, '');
+
+  // Remove 0x prefix if present (we'll add it back)
+  if (key.startsWith("0x") || key.startsWith("0X")) {
+    key = key.slice(2);
+  }
+
+  // Validate length (should be 64 hex chars)
+  if (key.length !== 64) {
+    console.warn(`Warning: Private key has ${key.length} chars, expected 64`);
+  }
+
+  return [`0x${key}`];
 }
 
 const config: HardhatUserConfig = {
@@ -33,11 +47,11 @@ const config: HardhatUserConfig = {
       accounts: getPrivateKey(),
       chainId: 42793,
     },
-    // Etherlink Testnet (Ghostnet)
+    // Etherlink Testnet (Shadownet)
     etherlinkTestnet: {
-      url: "https://node.ghostnet.etherlink.com",
+      url: "https://rpc.ankr.com/etherlink_shadownet_testnet",
       accounts: getPrivateKey(),
-      chainId: 128123,
+      chainId: 127823,
     },
   },
   etherscan: {

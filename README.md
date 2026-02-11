@@ -72,9 +72,15 @@ npm run dev
 | Network | Chain ID | RPC URL | Explorer |
 |---------|----------|---------|----------|
 | Mainnet | 42793 | https://node.mainnet.etherlink.com | https://explorer.etherlink.com |
-| Testnet | 128123 | https://node.ghostnet.etherlink.com | https://testnet.explorer.etherlink.com |
+| Shadownet (Testnet) | 127823 | https://rpc.ankr.com/etherlink_shadownet_testnet | https://shadownet.explorer.etherlink.com |
 
 Native currency: **XTZ** (18 decimals)
+
+## Deployed Contracts
+
+| Network | Contract | Address |
+|---------|----------|---------|
+| Shadownet | EventTicketNFTV2 | `0x931078294575b64b990F9235ba99Ca6F4905F339` |
 
 ## Smart Contract Architecture
 

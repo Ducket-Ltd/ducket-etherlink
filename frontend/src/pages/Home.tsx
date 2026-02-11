@@ -2,158 +2,212 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Ticket, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, Ticket, ArrowRight, CheckCircle, Shield, DollarSign, Blocks } from "lucide-react";
 import { MOCK_EVENTS, formatXTZ, isEventSoldOut } from "@/lib/mockData";
 import { formatDate } from "@/lib/utils";
 
 export default function Home() {
   return (
-    <main className="container py-8">
+    <main>
       {/* Hero Section */}
-      <section className="mb-12 text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">
-          NFT Tickets on{" "}
-          <span className="text-primary">Etherlink</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-          Secure, verifiable event tickets powered by blockchain technology.
-          No scalping, no fraud, just fair access to the events you love.
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Badge variant="outline" className="px-4 py-2">
-            <Ticket className="h-4 w-4 mr-2" />
-            Anti-Scalping Protection
-          </Badge>
-          <Badge variant="outline" className="px-4 py-2">
-            Resale Price Caps
-          </Badge>
-          <Badge variant="outline" className="px-4 py-2">
-            Instant Transfers
-          </Badge>
+      <section
+        className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden hero-gradient"
+      >
+        {/* Medal shine overlays */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 animate-shine" />
+          <div className="absolute w-96 h-96 -top-48 -left-48 animate-float" />
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-16 text-center">
+          {/* Launch badge */}
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/80 backdrop-blur border border-[#6B5B95] mb-8">
+            <span className="relative flex h-2 w-2 mr-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F5C842] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F5C842]"></span>
+            </span>
+            <span className="text-sm font-medium text-[#3D2870]">
+              Live on Etherlink
+            </span>
+          </div>
+
+          {/* Main headline */}
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 max-w-4xl mx-auto leading-tight text-[#1a1625]">
+            Fair Ticketing for{" "}
+            <span className="gradient-text">
+              Everyone
+            </span>
+          </h1>
+
+          {/* Subheadline */}
+          <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            No scalpers. No hidden fees. No stress. Blockchain-secured tickets
+            with transparent pricing, built for real fans and real events.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <Button
+              size="lg"
+              className="text-lg px-8 py-6 bg-[#3D2870] hover:bg-[#6B5B95] shadow-lg"
+              asChild
+            >
+              <a href="#events">
+                Browse Events
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-lg px-8 py-6 border-[#F5C842] text-[#1a1625] hover:bg-[#F5C842]"
+              asChild
+            >
+              <Link to="/resale">
+                Resale Market
+              </Link>
+            </Button>
+          </div>
+
+          {/* Trust badges */}
+          <div className="flex flex-wrap justify-center gap-8 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span>Verified Tickets</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span>Price Protection</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span>Instant Delivery</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Events Grid */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Upcoming Events</h2>
-          <Button variant="ghost" size="sm">
-            View All <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+      {/* Events Section */}
+      <section id="events" className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-[#F5F0FF] text-[#3D2870] text-sm font-medium mb-4">
+              Upcoming Events
+            </span>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              Find Your Next Experience
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Browse events with anti-scalping protection and fair resale prices.
+            </p>
+          </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {MOCK_EVENTS.map((event) => {
-            const soldOut = isEventSoldOut(event);
-            const lowestPrice = Math.min(...event.ticketTiers.map((t) => t.price));
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+            {MOCK_EVENTS.map((event) => {
+              const soldOut = isEventSoldOut(event);
+              const lowestPrice = Math.min(...event.ticketTiers.map((t) => t.price));
 
-            return (
-              <Link key={event.id} to={`/event/${event.id}`}>
-                <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-                  <div className="relative aspect-[16/9] overflow-hidden">
-                    <img
-                      src={event.imageUrl}
-                      alt={event.name}
-                      className="object-cover w-full h-full"
-                    />
-                    <div className="absolute top-2 left-2">
-                      <Badge>{event.category}</Badge>
-                    </div>
-                    {soldOut && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <Badge variant="destructive" className="text-lg px-4 py-2">
-                          Sold Out
-                        </Badge>
+              return (
+                <Link key={event.id} to={`/event/${event.id}`}>
+                  <Card className="overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1 border-[#E8E3F5] hover:border-[#3D2870]/30">
+                    <div className="relative aspect-[16/9] overflow-hidden">
+                      <img
+                        src={event.imageUrl}
+                        alt={event.name}
+                        className="object-cover w-full h-full"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-[#3D2870]">{event.category}</Badge>
                       </div>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-1">
-                      {event.name}
-                    </h3>
-                    <div className="flex items-center text-sm text-muted-foreground mb-1">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {formatDate(event.date)}
+                      {soldOut && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <Badge variant="destructive" className="text-lg px-4 py-2">
+                            Sold Out
+                          </Badge>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {event.city}, {event.country}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4 pt-0 flex items-center justify-between">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">From </span>
-                      <span className="font-semibold">{formatXTZ(lowestPrice)}</span>
-                    </div>
-                    {event.resaleEnabled && (
-                      <Badge variant="secondary" className="text-xs">
-                        Resale OK
-                      </Badge>
-                    )}
-                  </CardFooter>
-                </Card>
-              </Link>
-            );
-          })}
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-lg mb-2 line-clamp-1 text-[#1a1625]">
+                        {event.name}
+                      </h3>
+                      <div className="flex items-center text-sm text-gray-600 mb-1">
+                        <Calendar className="h-4 w-4 mr-2 text-[#3D2870]" />
+                        {formatDate(event.date)}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <MapPin className="h-4 w-4 mr-2 text-[#3D2870]" />
+                        {event.city}, {event.country}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-0 flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="text-gray-500">From </span>
+                        <span className="font-semibold text-[#3D2870]">{formatXTZ(lowestPrice)}</span>
+                      </div>
+                      {event.resaleEnabled && (
+                        <Badge variant="secondary" className="text-xs bg-[#F5F0FF] text-[#3D2870]">
+                          Resale OK
+                        </Badge>
+                      )}
+                    </CardFooter>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="mt-16 py-12 border-t">
-        <h2 className="text-2xl font-bold text-center mb-8">
-          Why NFT Tickets?
-        </h2>
-        <div className="grid gap-8 md:grid-cols-3">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Ticket className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold mb-2">Verifiable Ownership</h3>
-            <p className="text-sm text-muted-foreground">
-              Every ticket is a unique NFT on Etherlink, proving authentic ownership.
+      <section id="features" className="py-24 bg-[#F8F4FF]">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white text-[#3D2870] text-sm font-medium mb-4">
+              Features
+            </span>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              Why NFT Tickets?
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              We're building ticketing the way it should be - fair, transparent, and stress-free.
             </p>
           </div>
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="h-6 w-6 text-primary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {[
+              {
+                icon: Shield,
+                title: "Verified Tickets",
+                description: "Every ticket is cryptographically verified on the blockchain. No fakes, no scams, just real tickets.",
+              },
+              {
+                icon: DollarSign,
+                title: "Price Protection",
+                description: "Organizers set max resale prices, preventing scalping while allowing fair resales.",
+              },
+              {
+                icon: Ticket,
+                title: "Easy Entry",
+                description: "Show your QR code at the venue. Your ticket is always with you in your wallet.",
+              },
+              {
+                icon: Blocks,
+                title: "Etherlink Powered",
+                description: "Fast finality and low fees on Etherlink make ticketing seamless and affordable.",
+              },
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="group p-8 rounded-2xl bg-white border border-[#E8E3F5] hover:border-[#3D2870]/30 hover:shadow-xl hover:shadow-[#3D2870]/5 transition-all duration-300"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <h3 className="font-semibold mb-2">Fair Resale</h3>
-            <p className="text-sm text-muted-foreground">
-              Price caps prevent scalping while allowing legitimate resales.
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="h-6 w-6 text-primary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <h3 className="font-semibold mb-2">Instant & Cheap</h3>
-            <p className="text-sm text-muted-foreground">
-              Etherlink's fast finality and low fees make ticketing seamless.
-            </p>
+                <div className="w-14 h-14 mb-6 rounded-xl bg-[#3D2870] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <feature.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

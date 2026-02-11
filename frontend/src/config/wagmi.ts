@@ -18,7 +18,7 @@ export const wagmiConfig = getDefaultConfig({
   chains: SUPPORTED_CHAINS as any,
   transports: {
     [etherlink.id]: http('https://node.mainnet.etherlink.com'),
-    [etherlinkTestnet.id]: http('https://node.ghostnet.etherlink.com'),
+    [etherlinkTestnet.id]: http('https://rpc.ankr.com/etherlink_shadownet_testnet'),
   },
 });
 

@@ -102,19 +102,19 @@ export default function Resale() {
     <main className="container py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Resale Marketplace</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold mb-2 text-[#1a1625]">Resale Marketplace</h1>
+        <p className="text-gray-600">
           Buy tickets from other fans at fair, capped prices
         </p>
       </div>
 
       {/* Info Banner */}
-      <Card className="mb-8 border-primary/20 bg-primary/5">
+      <Card className="mb-8 border-[#3D2870]/20 bg-[#F5F0FF]">
         <CardContent className="py-4 flex items-center gap-4">
-          <Shield className="h-8 w-8 text-primary flex-shrink-0" />
+          <Shield className="h-8 w-8 text-[#3D2870] flex-shrink-0" />
           <div>
-            <h3 className="font-semibold">Price-Capped Resale</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="font-semibold text-[#1a1625]">Price-Capped Resale</h3>
+            <p className="text-sm text-gray-600">
               All resale prices are capped by the event organizer (typically 10-50%
               above original price). No scalping, guaranteed.
             </p>
@@ -125,16 +125,16 @@ export default function Resale() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search events..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 border-[#E8E3F5] focus:border-[#3D2870]"
           />
         </div>
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] border-[#E8E3F5]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -148,16 +148,18 @@ export default function Resale() {
 
       {/* Listings */}
       {sortedListings.length === 0 ? (
-        <Card>
+        <Card className="border-[#E8E3F5]">
           <CardContent className="py-16 text-center">
-            <h2 className="text-xl font-semibold mb-2">No Listings Found</h2>
-            <p className="text-muted-foreground mb-4">
+            <h2 className="text-xl font-semibold mb-2 text-[#1a1625]">No Listings Found</h2>
+            <p className="text-gray-600 mb-4">
               {searchQuery
                 ? "Try a different search term"
                 : "Check back later for new listings"}
             </p>
             <Link to="/">
-              <Button variant="outline">Browse Primary Sales</Button>
+              <Button variant="outline" className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]">
+                Browse Primary Sales
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -171,7 +173,7 @@ export default function Resale() {
             );
 
             return (
-              <Card key={listing.id} className="overflow-hidden">
+              <Card key={listing.id} className="overflow-hidden border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors">
                 <div className="flex flex-col sm:flex-row">
                   {/* Event Image */}
                   <div className="sm:w-48 h-32 sm:h-auto relative">
@@ -187,46 +189,56 @@ export default function Resale() {
                     <div className="flex-1">
                       <Link
                         to={`/event/${listing.eventId}`}
-                        className="font-semibold hover:text-primary transition-colors"
+                        className="font-semibold text-[#1a1625] hover:text-[#3D2870] transition-colors"
                       >
                         {listing.event!.name}
                       </Link>
                       <div className="flex flex-wrap gap-2 mt-1 mb-2">
-                        <Badge variant="outline">{listing.tier!.name}</Badge>
-                        <Badge variant="secondary">Seat: {listing.seatId}</Badge>
+                        <Badge variant="outline" className="border-[#3D2870] text-[#3D2870]">
+                          {listing.tier!.name}
+                        </Badge>
+                        <Badge className="bg-[#F5F0FF] text-[#3D2870]">
+                          Seat: {listing.seatId}
+                        </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
+                          <Calendar className="h-4 w-4 mr-1 text-[#3D2870]" />
                           {formatDate(listing.event!.date)}
                         </div>
                         <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
+                          <MapPin className="h-4 w-4 mr-1 text-[#3D2870]" />
                           {listing.event!.city}
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-xs text-gray-500 mt-2">
                         Seller: {truncateAddress(listing.seller)}
                       </p>
                     </div>
 
                     {/* Price & Buy */}
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l sm:pl-4">
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-[#E8E3F5] sm:pl-4">
                       <div className="text-right">
-                        <p className="text-2xl font-bold">
+                        <p className="text-2xl font-bold text-[#3D2870]">
                           {formatXTZ(listing.listingPrice)}
                         </p>
-                        <div className="flex items-center text-xs text-muted-foreground">
+                        <div className="flex items-center text-xs text-gray-500">
                           <TrendingUp className="h-3 w-3 mr-1" />
                           +{markup}% from original
                         </div>
                       </div>
                       {isConnected ? (
-                        <Button size="sm">Buy Now</Button>
+                        <Button size="sm" className="bg-[#3D2870] hover:bg-[#6B5B95]">
+                          Buy Now
+                        </Button>
                       ) : (
                         <ConnectButton.Custom>
                           {({ openConnectModal }) => (
-                            <Button size="sm" onClick={openConnectModal}>
+                            <Button
+                              size="sm"
+                              className="bg-[#3D2870] hover:bg-[#6B5B95]"
+                              onClick={openConnectModal}
+                            >
                               Connect to Buy
                             </Button>
                           )}

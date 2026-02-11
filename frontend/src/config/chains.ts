@@ -17,20 +17,20 @@ export const etherlink = defineChain({
   },
 });
 
-// Etherlink Testnet (Ghostnet)
+// Etherlink Testnet (Shadownet)
 export const etherlinkTestnet = defineChain({
-  id: 128123,
-  name: 'Etherlink Testnet',
+  id: 127823,
+  name: 'Etherlink Shadownet',
   nativeCurrency: {
     name: 'XTZ',
     symbol: 'XTZ',
     decimals: 18,
   },
   rpcUrls: {
-    default: { http: ['https://node.ghostnet.etherlink.com'] },
+    default: { http: ['https://rpc.ankr.com/etherlink_shadownet_testnet'] },
   },
   blockExplorers: {
-    default: { name: 'Etherlink Testnet Explorer', url: 'https://testnet.explorer.etherlink.com' },
+    default: { name: 'Etherlink Shadownet Explorer', url: 'https://shadownet.explorer.etherlink.com' },
   },
   testnet: true,
 });
