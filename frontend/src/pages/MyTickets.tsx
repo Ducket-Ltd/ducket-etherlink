@@ -64,7 +64,7 @@ export default function MyTickets() {
       }))
     : [];
 
-  const { data: ticketResults, isLoading: isLoadingTickets, refetch: refetchTickets } = useReadContracts({
+  const { data: ticketResults, isLoading: isLoadingTickets } = useReadContracts({
     contracts: ticketQueries,
     query: {
       enabled: !!address,
@@ -348,7 +348,7 @@ export default function MyTickets() {
                         <Ticket className="h-4 w-4 mr-2 text-[#3D2870]" />
                         Seat: {ticket.seatIdentifier}
                       </div>
-                      {ticket.isListed && ticket.listingPrice && (
+                      {ticket.isListed && ticket.listingPrice !== undefined && (
                         <div className="flex items-center text-amber-600 font-medium">
                           <Tag className="h-4 w-4 mr-2" />
                           Listed: {Number(formatEther(ticket.listingPrice)).toFixed(2)} XTZ

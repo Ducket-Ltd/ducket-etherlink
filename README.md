@@ -31,8 +31,6 @@ Every Ducket ticket is an NFT with smart contract-enforced resale caps. The code
 ducket-etherlink/
 ├── contracts/              # Smart contracts (Hardhat)
 │   ├── contracts/          # Solidity files
-│   │   ├── EventTicketNFT.sol
-│   │   └── EventTicketNFTV2.sol
 │   ├── scripts/            # Deployment scripts
 │   ├── test/               # Contract tests
 │   └── hardhat.config.ts   # Configured for Etherlink
@@ -41,9 +39,14 @@ ducket-etherlink/
 │   ├── src/
 │   │   ├── components/     # UI components
 │   │   ├── config/         # Chain & wagmi config
+│   │   ├── hooks/          # React hooks (useXtzPrice, etc.)
 │   │   ├── lib/            # Utilities & mock data
 │   │   └── pages/          # Page components
 │   └── package.json
+│
+├── docs/                   # Documentation
+│   ├── ARCHITECTURE.md     # System architecture
+│   └── DEPLOYMENT.md       # Deployment guide
 │
 └── README.md
 ```
@@ -139,12 +142,20 @@ Etherlink is an EVM-compatible Layer 2 that brings Ethereum-grade smart contract
 - **Blockchain**: wagmi v2, viem, RainbowKit
 - **Styling**: Tailwind CSS, shadcn/ui
 
+## Documentation
+
+- [Architecture Overview](./docs/ARCHITECTURE.md) — System design and technical details
+- [Deployment Guide](./docs/DEPLOYMENT.md) — How to deploy contracts and frontend
+- [Audit Report](./docs/AUDIT_REPORT.md) — Security and IP audit results
+
+## Team
+
+Built by the Ducket team — reimagining ticketing for the Web3 era.
+
 ## License
 
 MIT
 
 ---
-
-Built on Etherlink by the Ducket team
 
 [View Demo](https://ducket-etherlink.vercel.app) · [View Contract on Explorer](https://shadownet.explorer.etherlink.com/address/0x6eE88cA6958547131d6552d1626a8730b1FaF554)

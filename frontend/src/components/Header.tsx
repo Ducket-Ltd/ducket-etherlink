@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useAccount, useBalance } from "wagmi";
 

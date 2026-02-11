@@ -7,10 +7,10 @@ import {
   Lock,
   Clock,
   DollarSign,
-  ExternalLink,
-  Github,
   ArrowRight,
 } from 'lucide-react';
+// @ts-ignore - Github icon is deprecated but still works
+import { Github } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ContractExplorerLink } from '@/components/shared/ExplorerLink';

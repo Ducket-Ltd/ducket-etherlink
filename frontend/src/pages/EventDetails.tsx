@@ -17,7 +17,6 @@ import {
   Tag,
   TrendingUp,
   Loader2,
-  CheckCircle,
 } from "lucide-react";
 import { getEventById, getTicketsRemaining, getResaleListingsForEvent, MOCK_EVENTS } from "@/lib/mockData";
 import { formatDateTime, truncateAddress } from "@/lib/utils";
@@ -25,11 +24,10 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { PriceDisplay } from "@/components/shared/PriceDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/wagmi";
-import { ExplorerLink } from "@/components/shared/ExplorerLink";
 
 export default function EventDetails() {
   const { id } = useParams<{ id: string }>();
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const { toast } = useToast();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
