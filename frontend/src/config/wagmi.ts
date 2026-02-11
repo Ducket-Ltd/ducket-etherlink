@@ -166,6 +166,14 @@ export const CONTRACT_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  // Event tickets query
+  {
+    inputs: [{ name: 'eventId', type: 'uint256' }],
+    name: 'getEventTickets',
+    outputs: [{ name: '', type: 'uint256[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   // User queries
   {
     inputs: [

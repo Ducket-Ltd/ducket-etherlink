@@ -1,41 +1,41 @@
-import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useState, useEffect } from "react";
+import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, Calendar, MapPin, QrCode, ExternalLink, Tag, Send } from "lucide-react";
+import { Ticket, Calendar, MapPin, QrCode, ExternalLink, Tag, Send, Loader2, X } from "lucide-react";
 import { MOCK_EVENTS } from "@/lib/mockData";
 import { formatDate } from "@/lib/utils";
 import { TransferModal } from "@/components/shared/TransferModal";
 import { ResaleListingModal } from "@/components/resale/ResaleListingModal";
 import { useToast } from "@/hooks/use-toast";
+import { CONTRACT_ADDRESS, CONTRACT_ABI, ACTIVE_CHAIN } from "@/config/wagmi";
+import { formatEther, parseEther } from "viem";
 
-// Mock user's tickets - in production this would come from on-chain data
-const MOCK_USER_TICKETS = [
-  {
-    id: "ticket-1",
-    eventId: "1",
-    tierId: "1-ga",
-    seatId: "GA-0042",
-    purchaseDate: new Date("2025-01-15"),
-  },
-  {
-    id: "ticket-2",
-    eventId: "2",
-    tierId: "2-weekend",
-    seatId: "WKD-0123",
-    purchaseDate: new Date("2025-01-20"),
-  },
-];
+// Number of events on the contract (0-10)
+const TOTAL_EVENTS = 11;
+
+interface TicketData {
+  ticketId: bigint;
+  eventId: number;
+  tierId: number;
+  seatIdentifier: string;
+  originalPrice: bigint;
+  purchaseTimestamp: bigint;
+  isListed: boolean;
+  listingPrice?: bigint;
+}
 
 interface SelectedTicket {
   id: string;
+  ticketId: bigint;
   eventName: string;
   tierName: string;
   originalPrice: number;
   maxResalePercentage: number;
+  tierId: number;
 }
 
 export default function MyTickets() {
@@ -44,9 +44,137 @@ export default function MyTickets() {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [resaleModalOpen, setResaleModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null);
+  const [userTickets, setUserTickets] = useState<TicketData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [cancellingTicketId, setCancellingTicketId] = useState<bigint | null>(null);
 
-  const handleTransfer = async (recipientAddress: string) => {
-    // Simulate transfer - in production this would call the smart contract
+  // Contract write for cancelling listings
+  const { writeContract, data: txHash, isPending: isWritePending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  // Build contracts array for querying user tickets across all events
+  const ticketQueries = address
+    ? Array.from({ length: TOTAL_EVENTS }, (_, i) => ({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "getUserTicketsForEvent" as const,
+        args: [address, BigInt(i)],
+      }))
+    : [];
+
+  const { data: ticketResults, isLoading: isLoadingTickets, refetch: refetchTickets } = useReadContracts({
+    contracts: ticketQueries,
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  // Collect all ticket IDs from all events
+  const allTicketIds: { ticketId: bigint; eventId: number }[] = [];
+  if (ticketResults) {
+    ticketResults.forEach((result, eventId) => {
+      if (result.status === "success" && Array.isArray(result.result)) {
+        (result.result as bigint[]).forEach((ticketId) => {
+          allTicketIds.push({ ticketId, eventId });
+        });
+      }
+    });
+  }
+
+  // Build queries for ticket info
+  const ticketInfoQueries = allTicketIds.map(({ ticketId }) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getTicketInfo" as const,
+    args: [ticketId],
+  }));
+
+  const { data: ticketInfoResults, isLoading: isLoadingInfo } = useReadContracts({
+    contracts: ticketInfoQueries,
+    query: {
+      enabled: allTicketIds.length > 0,
+    },
+  });
+
+  // Build queries for resale listings
+  const resaleQueries = allTicketIds.map(({ ticketId }) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "resaleListings" as const,
+    args: [ticketId],
+  }));
+
+  const { data: resaleResults, refetch: refetchResale } = useReadContracts({
+    contracts: resaleQueries,
+    query: {
+      enabled: allTicketIds.length > 0,
+    },
+  });
+
+  // Process ticket info results
+  useEffect(() => {
+    if (ticketInfoResults && allTicketIds.length > 0) {
+      const tickets: TicketData[] = [];
+      ticketInfoResults.forEach((result, index) => {
+        if (result.status === "success" && result.result) {
+          const info = result.result as {
+            eventId: bigint;
+            tierId: bigint;
+            seatIdentifier: string;
+            originalPrice: bigint;
+            purchaseTimestamp: bigint;
+            exists: boolean;
+          };
+
+          // Check resale status
+          let isListed = false;
+          let listingPrice: bigint | undefined;
+          if (resaleResults && resaleResults[index]?.status === "success") {
+            const listing = resaleResults[index].result as [bigint, string, bigint, boolean];
+            isListed = listing[3]; // active flag
+            if (isListed) {
+              listingPrice = listing[2]; // price
+            }
+          }
+
+          if (info.exists) {
+            tickets.push({
+              ticketId: allTicketIds[index].ticketId,
+              eventId: Number(info.eventId),
+              tierId: Number(info.tierId),
+              seatIdentifier: info.seatIdentifier,
+              originalPrice: info.originalPrice,
+              purchaseTimestamp: info.purchaseTimestamp,
+              isListed,
+              listingPrice,
+            });
+          }
+        }
+      });
+      setUserTickets(tickets);
+      setIsLoading(false);
+    } else if (!isLoadingTickets && allTicketIds.length === 0) {
+      setUserTickets([]);
+      setIsLoading(false);
+    }
+  }, [ticketInfoResults, resaleResults, allTicketIds.length, isLoadingTickets]);
+
+  // Handle successful cancel
+  useEffect(() => {
+    if (isConfirmed && cancellingTicketId) {
+      toast({
+        title: "Listing Cancelled",
+        description: "Your ticket is no longer listed for resale.",
+      });
+      setCancellingTicketId(null);
+      refetchResale();
+    }
+  }, [isConfirmed, cancellingTicketId, toast, refetchResale]);
+
+  const handleTransfer = async (_recipientAddress: string) => {
+    // In production this would call safeTransferFrom on the contract
     await new Promise((resolve) => setTimeout(resolve, 2000));
     toast({
       title: "Transfer Complete",
@@ -56,13 +184,44 @@ export default function MyTickets() {
   };
 
   const handleListForResale = async (price: number) => {
-    // Simulate listing - in production this would call the smart contract
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    toast({
-      title: "Listed for Resale",
-      description: `Your ticket is now listed for ${price.toFixed(2)} XTZ.`,
+    if (!selectedTicket) return { success: false, error: "No ticket selected" };
+
+    try {
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "listForResale",
+        args: [selectedTicket.ticketId, parseEther(price.toString())],
+      });
+
+      // Wait a bit for the transaction to be submitted
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      toast({
+        title: "Listed for Resale",
+        description: `Your ticket is now listed for ${price.toFixed(2)} XTZ.`,
+      });
+
+      refetchResale();
+      return { success: true, txHash: "0x" + Math.random().toString(16).slice(2) };
+    } catch (error) {
+      return { success: false, error: "Failed to list ticket" };
+    }
+  };
+
+  const handleCancelListing = (ticketId: bigint) => {
+    setCancellingTicketId(ticketId);
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "cancelResaleListing",
+      args: [ticketId],
     });
-    return { success: true, txHash: "0x" + Math.random().toString(16).slice(2) };
+  };
+
+  const getExplorerUrl = (ticketId: bigint) => {
+    const baseUrl = ACTIVE_CHAIN.blockExplorers?.default.url || "https://testnet.explorer.etherlink.com";
+    return `${baseUrl}/token/${CONTRACT_ADDRESS}/instance/${ticketId.toString()}`;
   };
 
   if (!isConnected) {
@@ -82,10 +241,31 @@ export default function MyTickets() {
     );
   }
 
-  const userTickets = MOCK_USER_TICKETS.map((ticket) => {
-    const event = MOCK_EVENTS.find((e) => e.id === ticket.eventId);
-    const tier = event?.ticketTiers.find((t) => t.id === ticket.tierId);
-    return { ...ticket, event, tier };
+  if (isLoading || isLoadingTickets || isLoadingInfo) {
+    return (
+      <main className="container py-16">
+        <div className="max-w-md mx-auto text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#3D2870] mx-auto mb-4" />
+          <p className="text-gray-600">Loading your tickets...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Map ticket data to display format
+  const displayTickets = userTickets.map((ticket) => {
+    // Find matching mock event data for display info
+    const mockEvent = MOCK_EVENTS.find((e) => {
+      const tier = e.ticketTiers.find((t) => t.tokenId === ticket.tierId);
+      return tier !== undefined;
+    });
+    const tier = mockEvent?.ticketTiers.find((t) => t.tokenId === ticket.tierId);
+
+    return {
+      ...ticket,
+      event: mockEvent,
+      tier,
+    };
   }).filter((t) => t.event && t.tier);
 
   return (
@@ -93,11 +273,11 @@ export default function MyTickets() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-[#1a1625]">My Tickets</h1>
         <Badge variant="outline" className="text-sm border-[#3D2870] text-[#3D2870]">
-          {userTickets.length} ticket{userTickets.length !== 1 ? "s" : ""}
+          {displayTickets.length} ticket{displayTickets.length !== 1 ? "s" : ""}
         </Badge>
       </div>
 
-      {userTickets.length === 0 ? (
+      {displayTickets.length === 0 ? (
         <Card className="border-[#E8E3F5]">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-[#F5F0FF] flex items-center justify-center mx-auto mb-6">
@@ -114,12 +294,14 @@ export default function MyTickets() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
-          {userTickets.map((ticket) => {
+          {displayTickets.map((ticket) => {
             const isPast = ticket.event!.date < new Date();
+            const priceInXtz = Number(formatEther(ticket.originalPrice));
+            const isCancelling = cancellingTicketId === ticket.ticketId && (isWritePending || isConfirming);
 
             return (
               <Card
-                key={ticket.id}
+                key={ticket.ticketId.toString()}
                 className={`overflow-hidden border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors ${isPast ? "opacity-60" : ""}`}
               >
                 <div className="flex">
@@ -133,6 +315,11 @@ export default function MyTickets() {
                     {isPast && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Badge className="bg-[#F5F0FF] text-[#3D2870]">Past Event</Badge>
+                      </div>
+                    )}
+                    {ticket.isListed && !isPast && (
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-amber-500 text-white">Listed for Resale</Badge>
                       </div>
                     )}
                   </div>
@@ -159,8 +346,14 @@ export default function MyTickets() {
                       </div>
                       <div className="flex items-center">
                         <Ticket className="h-4 w-4 mr-2 text-[#3D2870]" />
-                        Seat: {ticket.seatId}
+                        Seat: {ticket.seatIdentifier}
                       </div>
+                      {ticket.isListed && ticket.listingPrice && (
+                        <div className="flex items-center text-amber-600 font-medium">
+                          <Tag className="h-4 w-4 mr-2" />
+                          Listed: {Number(formatEther(ticket.listingPrice)).toFixed(2)} XTZ
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -172,18 +365,20 @@ export default function MyTickets() {
                         <QrCode className="h-4 w-4 mr-1" />
                         QR
                       </Button>
-                      {ticket.event!.transferEnabled && !isPast && (
+                      {ticket.event!.transferEnabled && !isPast && !ticket.isListed && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
                           onClick={() => {
                             setSelectedTicket({
-                              id: ticket.seatId,
+                              id: ticket.seatIdentifier,
+                              ticketId: ticket.ticketId,
                               eventName: ticket.event!.name,
                               tierName: ticket.tier!.name,
-                              originalPrice: ticket.tier!.price,
+                              originalPrice: priceInXtz,
                               maxResalePercentage: ticket.event!.maxResalePercentage,
+                              tierId: ticket.tierId,
                             });
                             setTransferModalOpen(true);
                           }}
@@ -193,27 +388,58 @@ export default function MyTickets() {
                         </Button>
                       )}
                       {ticket.event!.resaleEnabled && !isPast && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
-                          onClick={() => {
-                            setSelectedTicket({
-                              id: ticket.seatId,
-                              eventName: ticket.event!.name,
-                              tierName: ticket.tier!.name,
-                              originalPrice: ticket.tier!.price,
-                              maxResalePercentage: ticket.event!.maxResalePercentage,
-                            });
-                            setResaleModalOpen(true);
-                          }}
-                        >
-                          <Tag className="h-4 w-4 mr-1" />
-                          List for Resale
-                        </Button>
+                        ticket.isListed ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-amber-500 text-amber-600 hover:bg-amber-50"
+                            onClick={() => handleCancelListing(ticket.ticketId)}
+                            disabled={isCancelling}
+                          >
+                            {isCancelling ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Cancelling...
+                              </>
+                            ) : (
+                              <>
+                                <X className="h-4 w-4 mr-1" />
+                                Cancel Listing
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
+                            onClick={() => {
+                              setSelectedTicket({
+                                id: ticket.seatIdentifier,
+                                ticketId: ticket.ticketId,
+                                eventName: ticket.event!.name,
+                                tierName: ticket.tier!.name,
+                                originalPrice: priceInXtz,
+                                maxResalePercentage: ticket.event!.maxResalePercentage,
+                                tierId: ticket.tierId,
+                              });
+                              setResaleModalOpen(true);
+                            }}
+                          >
+                            <Tag className="h-4 w-4 mr-1" />
+                            List for Resale
+                          </Button>
+                        )
                       )}
-                      <Button variant="ghost" size="sm" className="text-[#3D2870] hover:bg-[#F5F0FF]">
-                        <ExternalLink className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-[#3D2870] hover:bg-[#F5F0FF]"
+                        onClick={() => window.open(getExplorerUrl(ticket.ticketId), "_blank")}
+                        title="View on Etherlink Explorer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View on Etherlink
                       </Button>
                     </div>
                   </CardContent>
@@ -231,9 +457,9 @@ export default function MyTickets() {
           <p className="text-sm text-gray-600">
             Your tickets are NFTs on the Etherlink blockchain. You can transfer them to
             another wallet, list them for resale (if the event allows), or hold them as
-            collectibles after the event. View your tickets on the{" "}
+            collectibles after the event. View all your NFTs on the{" "}
             <a
-              href={`https://shadownet.explorer.etherlink.com/address/${address}`}
+              href={`${ACTIVE_CHAIN.blockExplorers?.default.url}/address/${address}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#3D2870] hover:underline"

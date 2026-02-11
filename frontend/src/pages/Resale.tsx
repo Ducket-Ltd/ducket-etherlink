@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,26 +12,179 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, MapPin, TrendingUp, Shield, Search } from "lucide-react";
-import { MOCK_EVENTS, MOCK_RESALE_LISTINGS } from "@/lib/mockData";
+import { Calendar, MapPin, TrendingUp, Shield, Search, Loader2 } from "lucide-react";
+import { MOCK_EVENTS } from "@/lib/mockData";
 import { formatDate, truncateAddress } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PriceDisplay } from "@/components/shared/PriceDisplay";
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/wagmi";
+import { formatEther } from "viem";
+import { useToast } from "@/hooks/use-toast";
+
+// Number of events on the contract
+const TOTAL_EVENTS = 11;
+
+interface ResaleListing {
+  ticketId: bigint;
+  seller: string;
+  price: bigint;
+  eventId: number;
+  tierId: number;
+  seatIdentifier: string;
+  originalPrice: bigint;
+}
 
 export default function Resale() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  const [listings, setListings] = useState<ResaleListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [buyingTicketId, setBuyingTicketId] = useState<bigint | null>(null);
 
-  // Enrich listings with event data
-  const listings = MOCK_RESALE_LISTINGS.map((listing) => {
-    const event = MOCK_EVENTS.find((e) => e.id === listing.eventId);
-    const tier = event?.ticketTiers.find((t) => t.id === listing.tierId);
-    return { ...listing, event, tier };
+  // Contract write for buying
+  const { writeContract, data: txHash, isPending: isWritePending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  // Query all event tickets
+  const eventTicketQueries = Array.from({ length: TOTAL_EVENTS }, (_, i) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getEventTickets" as const,
+    args: [BigInt(i)],
+  }));
+
+  const { data: eventTicketsData } = useReadContracts({
+    contracts: eventTicketQueries,
+  });
+
+  // Collect all ticket IDs
+  const allTicketIds: bigint[] = [];
+  if (eventTicketsData) {
+    eventTicketsData.forEach((result) => {
+      if (result.status === "success" && Array.isArray(result.result)) {
+        allTicketIds.push(...(result.result as bigint[]));
+      }
+    });
+  }
+
+  // Query resale listings for all tickets
+  const resaleQueries = allTicketIds.map((ticketId) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "resaleListings" as const,
+    args: [ticketId],
+  }));
+
+  const { data: resaleData, refetch: refetchResale } = useReadContracts({
+    contracts: resaleQueries,
+    query: {
+      enabled: allTicketIds.length > 0,
+    },
+  });
+
+  // Query ticket info for active listings
+  const activeTicketIds = allTicketIds.filter((_, index) => {
+    if (!resaleData || !resaleData[index]) return false;
+    const result = resaleData[index];
+    if (result.status !== "success") return false;
+    const listing = result.result as [bigint, string, bigint, boolean];
+    return listing[3]; // active flag
+  });
+
+  const ticketInfoQueries = activeTicketIds.map((ticketId) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getTicketInfo" as const,
+    args: [ticketId],
+  }));
+
+  const { data: ticketInfoData } = useReadContracts({
+    contracts: ticketInfoQueries,
+    query: {
+      enabled: activeTicketIds.length > 0,
+    },
+  });
+
+  // Build listings from data
+  useEffect(() => {
+    if (resaleData && ticketInfoData && activeTicketIds.length > 0) {
+      const newListings: ResaleListing[] = [];
+
+      activeTicketIds.forEach((ticketId, index) => {
+        const resaleIndex = allTicketIds.indexOf(ticketId);
+        const resaleResult = resaleData[resaleIndex];
+        const infoResult = ticketInfoData[index];
+
+        if (resaleResult?.status === "success" && infoResult?.status === "success") {
+          const listing = resaleResult.result as [bigint, string, bigint, boolean];
+          const info = infoResult.result as {
+            eventId: bigint;
+            tierId: bigint;
+            seatIdentifier: string;
+            originalPrice: bigint;
+          };
+
+          if (listing[3]) { // active
+            newListings.push({
+              ticketId,
+              seller: listing[1],
+              price: listing[2],
+              eventId: Number(info.eventId),
+              tierId: Number(info.tierId),
+              seatIdentifier: info.seatIdentifier,
+              originalPrice: info.originalPrice,
+            });
+          }
+        }
+      });
+
+      setListings(newListings);
+      setIsLoading(false);
+    } else if (allTicketIds.length === 0 && eventTicketsData) {
+      setListings([]);
+      setIsLoading(false);
+    }
+  }, [resaleData, ticketInfoData, activeTicketIds.length, allTicketIds.length, eventTicketsData]);
+
+  // Handle successful purchase
+  useEffect(() => {
+    if (isConfirmed && buyingTicketId) {
+      toast({
+        title: "Purchase Complete!",
+        description: "The ticket has been transferred to your wallet.",
+      });
+      setBuyingTicketId(null);
+      refetchResale();
+    }
+  }, [isConfirmed, buyingTicketId, toast, refetchResale]);
+
+  const handleBuy = (ticketId: bigint, price: bigint) => {
+    setBuyingTicketId(ticketId);
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "buyResaleTicket",
+      args: [ticketId],
+      value: price,
+    });
+  };
+
+  // Enrich listings with mock event data for display
+  const enrichedListings = listings.map((listing) => {
+    const mockEvent = MOCK_EVENTS.find((e) => {
+      const tier = e.ticketTiers.find((t) => t.tokenId === listing.tierId);
+      return tier !== undefined;
+    });
+    const tier = mockEvent?.ticketTiers.find((t) => t.tokenId === listing.tierId);
+    return { ...listing, event: mockEvent, tier };
   }).filter((l) => l.event && l.tier);
 
   // Filter by search
-  const filteredListings = listings.filter(
+  const filteredListings = enrichedListings.filter(
     (listing) =>
       listing.event!.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       listing.event!.city.toLowerCase().includes(searchQuery.toLowerCase())
@@ -41,15 +194,26 @@ export default function Resale() {
   const sortedListings = [...filteredListings].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
-        return a.listingPrice - b.listingPrice;
+        return Number(a.price - b.price);
       case "price-high":
-        return b.listingPrice - a.listingPrice;
+        return Number(b.price - a.price);
       case "date":
         return a.event!.date.getTime() - b.event!.date.getTime();
-      default: // recent
-        return b.listedAt.getTime() - a.listedAt.getTime();
+      default:
+        return Number(b.ticketId - a.ticketId); // Most recent by ticket ID
     }
   });
+
+  if (isLoading) {
+    return (
+      <main className="container py-16">
+        <div className="max-w-md mx-auto text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#3D2870] mx-auto mb-4" />
+          <p className="text-gray-600">Loading resale listings...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container py-8">
@@ -107,7 +271,7 @@ export default function Resale() {
             <p className="text-gray-600 mb-4">
               {searchQuery
                 ? "Try a different search term"
-                : "Check back later for new listings"}
+                : "No tickets are currently listed for resale. Check back later!"}
             </p>
             <Link to="/">
               <Button variant="outline" className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]">
@@ -119,14 +283,14 @@ export default function Resale() {
       ) : (
         <div className="grid gap-4">
           {sortedListings.map((listing) => {
-            const markup = Math.round(
-              ((listing.listingPrice - listing.originalPrice) /
-                listing.originalPrice) *
-                100
-            );
+            const originalPriceNum = Number(formatEther(listing.originalPrice));
+            const listingPriceNum = Number(formatEther(listing.price));
+            const markup = Math.round(((listingPriceNum - originalPriceNum) / originalPriceNum) * 100);
+            const isBuying = buyingTicketId === listing.ticketId && (isWritePending || isConfirming);
+            const isOwnListing = address?.toLowerCase() === listing.seller.toLowerCase();
 
             return (
-              <Card key={listing.id} className="overflow-hidden border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors">
+              <Card key={listing.ticketId.toString()} className="overflow-hidden border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors">
                 <div className="flex flex-col sm:flex-row">
                   {/* Event Image */}
                   <div className="sm:w-48 h-32 sm:h-auto relative">
@@ -141,7 +305,7 @@ export default function Resale() {
                   <CardContent className="flex-1 p-4 flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                       <Link
-                        to={`/event/${listing.eventId}`}
+                        to={`/event/${listing.event!.id}`}
                         className="font-semibold text-[#1a1625] hover:text-[#3D2870] transition-colors"
                       >
                         {listing.event!.name}
@@ -151,7 +315,7 @@ export default function Resale() {
                           {listing.tier!.name}
                         </Badge>
                         <Badge className="bg-[#F5F0FF] text-[#3D2870]">
-                          Seat: {listing.seatId}
+                          Seat: {listing.seatIdentifier}
                         </Badge>
                       </div>
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
@@ -166,21 +330,38 @@ export default function Resale() {
                       </div>
                       <p className="text-xs text-gray-500 mt-2">
                         Seller: {truncateAddress(listing.seller)}
+                        {isOwnListing && <span className="ml-2 text-[#3D2870]">(You)</span>}
                       </p>
                     </div>
 
                     {/* Price & Buy */}
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-[#E8E3F5] sm:pl-4">
                       <div className="text-right">
-                        <PriceDisplay xtzAmount={listing.listingPrice} size="lg" />
+                        <PriceDisplay xtzAmount={listingPriceNum} size="lg" />
                         <div className="flex items-center text-xs text-gray-500">
                           <TrendingUp className="h-3 w-3 mr-1" />
                           +{markup}% from original
                         </div>
                       </div>
-                      {isConnected ? (
-                        <Button size="sm" className="bg-[#3D2870] hover:bg-[#6B5B95]">
-                          Buy Now
+                      {isOwnListing ? (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">
+                          Your Listing
+                        </Badge>
+                      ) : isConnected ? (
+                        <Button
+                          size="sm"
+                          className="bg-[#3D2870] hover:bg-[#6B5B95]"
+                          onClick={() => handleBuy(listing.ticketId, listing.price)}
+                          disabled={isBuying}
+                        >
+                          {isBuying ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {isConfirming ? "Confirming..." : "Buying..."}
+                            </>
+                          ) : (
+                            "Buy Now"
+                          )}
                         </Button>
                       ) : (
                         <ConnectButton.Custom>
