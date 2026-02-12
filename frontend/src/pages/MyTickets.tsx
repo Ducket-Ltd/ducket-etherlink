@@ -236,9 +236,9 @@ export default function MyTickets() {
     });
   };
 
-  const getExplorerUrl = (ticketId: bigint) => {
-    const baseUrl = ACTIVE_CHAIN.blockExplorers?.default.url || "https://testnet.explorer.etherlink.com";
-    return `${baseUrl}/token/${CONTRACT_ADDRESS}/instance/${ticketId.toString()}`;
+  const getExplorerUrl = () => {
+    const baseUrl = ACTIVE_CHAIN.blockExplorers?.default.url || "https://shadownet.explorer.etherlink.com";
+    return `${baseUrl}/address/${address}?tab=tokens`;
   };
 
   if (!isConnected) {
@@ -458,11 +458,11 @@ export default function MyTickets() {
                         variant="ghost"
                         size="sm"
                         className="text-[#3D2870] hover:bg-[#F5F0FF]"
-                        onClick={() => window.open(getExplorerUrl(ticket.ticketId), "_blank")}
-                        title="View on Etherlink Explorer"
+                        onClick={() => window.open(getExplorerUrl(), "_blank")}
+                        title="View your tokens on Etherlink Explorer"
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
-                        View on Etherlink
+                        View Tokens
                       </Button>
                     </div>
                   </CardContent>

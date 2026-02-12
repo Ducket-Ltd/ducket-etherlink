@@ -1,0 +1,32 @@
+{
+  "tokenId": 4,
+  "name": "Web3 Gaming Expo — Gamer Pass",
+  "description": "Gamer Pass for Web3 Gaming Expo. Access to all demo stations, tournaments, and panels.",
+  "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Web3 Gaming Expo"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Gamer Pass"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Suntec Convention Centre"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-06-30"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Gaming"
+    }
+  ]
+}

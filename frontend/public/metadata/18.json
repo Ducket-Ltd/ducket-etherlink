@@ -1,0 +1,32 @@
+{
+  "tokenId": 18,
+  "name": "Crypto Documentary Premiere — Standard Screening",
+  "description": "Standard Screening ticket for Crypto Documentary Premiere. Movie viewing with post-film Q&A.",
+  "image": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Crypto Documentary Premiere"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Standard Screening"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "The Projector"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-09-05"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Film"
+    }
+  ]
+}

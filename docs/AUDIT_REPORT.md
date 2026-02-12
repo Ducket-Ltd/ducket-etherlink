@@ -80,7 +80,7 @@ Fixed unused imports in:
 
 | Network | Contract | Address | Status |
 |---------|----------|---------|--------|
-| Shadownet (Testnet) | EventTicketNFTV2 | `0x6eE88cA6958547131d6552d1626a8730b1FaF554` | Deployed |
+| Shadownet (Testnet) | EventTicketNFTV2 | `0x3F82833474353588bC8527CC9faeCD190008100D` | Deployed |
 
 ### Contract Features
 - Demo mode (auto-refund) enabled

@@ -92,6 +92,11 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     // STATE VARIABLES
     // ============================================================================
 
+    // Token metadata
+    string public constant name = "Ducket Event Tickets";
+    string public constant symbol = "DUCKET";
+    string private _baseURI;
+
     // Counters
     uint256 private _eventIdCounter;
     uint256 private _tokenIdCounter;        // Tier token IDs
@@ -239,7 +244,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
 
     /**
      * @notice Create a new event
-     * @param name Event name
+     * @param eventName Event name
      * @param eventDate Unix timestamp of the event
      * @param maxResalePercentage Max resale price as percentage (100-200)
      * @param maxTicketsPerWallet Max tickets one wallet can own (0 = unlimited)
@@ -249,7 +254,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
      * @return eventId The ID of the created event
      */
     function createEvent(
-        string memory name,
+        string memory eventName,
         uint256 eventDate,
         uint16 maxResalePercentage,
         uint256 maxTicketsPerWallet,
@@ -257,7 +262,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
         bool resaleEnabled,
         bool transferEnabled
     ) external returns (uint256) {
-        require(bytes(name).length > 0, "Name required");
+        require(bytes(eventName).length > 0, "Name required");
         require(eventDate > block.timestamp, "Event must be in future");
         require(maxResalePercentage >= 100 && maxResalePercentage <= 200, "Resale % must be 100-200");
         require(totalSupply > 0 && totalSupply <= maxEventSupply, "Invalid supply");
@@ -272,7 +277,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
             paused: false,
             cancelled: false,
             exists: true,
-            name: name,
+            name: eventName,
             eventDate: eventDate,
             maxTicketsPerWallet: maxTicketsPerWallet,
             totalSupply: totalSupply,
@@ -281,7 +286,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
             createdAt: block.timestamp
         });
 
-        emit EventCreated(eventId, name, msg.sender, totalSupply);
+        emit EventCreated(eventId, eventName, msg.sender, totalSupply);
         return eventId;
     }
 
@@ -364,7 +369,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     /**
      * @notice Create a ticket tier for an event
      * @param eventId Parent event
-     * @param name Tier name (e.g., "VIP", "General")
+     * @param tierName Tier name (e.g., "VIP", "General")
      * @param seatPrefix Prefix for auto-generated seats (e.g., "GA-", "VIP-")
      * @param price Ticket price in wei
      * @param tierMaxSupply Max tickets for this tier
@@ -372,19 +377,19 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
      */
     function createTicketTier(
         uint256 eventId,
-        string memory name,
+        string memory tierName,
         string memory seatPrefix,
         uint256 price,
         uint256 tierMaxSupply
     ) external eventExists(eventId) onlyOrganizer(eventId) returns (uint256) {
-        require(bytes(name).length > 0, "Name required");
+        require(bytes(tierName).length > 0, "Name required");
         require(tierMaxSupply > 0, "Supply must be > 0");
 
         uint256 tokenId = _tokenIdCounter++;
 
         ticketTiers[tokenId] = TicketTier({
             eventId: eventId,
-            name: name,
+            name: tierName,
             seatPrefix: seatPrefix,
             price: price,
             maxSupply: tierMaxSupply,
@@ -392,7 +397,7 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
             exists: true
         });
 
-        emit TicketTierCreated(tokenId, eventId, name, price, tierMaxSupply);
+        emit TicketTierCreated(tokenId, eventId, tierName, price, tierMaxSupply);
         return tokenId;
     }
 
@@ -922,11 +927,34 @@ contract EventTicketNFTV2 is ERC1155, AccessControl, ERC1155Supply, ReentrancyGu
     }
 
     /**
-     * @notice Set token URI
-     * @param newuri New base URI
+     * @notice Set base URI for token metadata
+     * @param newuri New base URI (e.g., "https://your-site.com/metadata/")
      */
     function setURI(string memory newuri) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _baseURI = newuri;
         _setURI(newuri);
+    }
+
+    /**
+     * @notice Get the base URI
+     */
+    function baseURI() external view returns (string memory) {
+        return _baseURI;
+    }
+
+    /**
+     * @notice Returns the metadata URI for a given token ID
+     * @dev Override to return per-token metadata: {baseURI}{tokenId}.json
+     * @param tokenId The tier token ID
+     */
+    function uri(uint256 tokenId) public view override returns (string memory) {
+        require(ticketTiers[tokenId].exists, "Token does not exist");
+
+        if (bytes(_baseURI).length == 0) {
+            return super.uri(tokenId);
+        }
+
+        return string(abi.encodePacked(_baseURI, tokenId.toString(), ".json"));
     }
 
     // ============================================================================

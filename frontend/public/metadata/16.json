@@ -1,0 +1,32 @@
+{
+  "tokenId": 16,
+  "name": "APAC Esports Championship — Arena VIP",
+  "description": "Arena VIP ticket for APAC Esports Championship. Front row gaming chairs, team meet & greet, exclusive merch.",
+  "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "APAC Esports Championship"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Arena VIP"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Singapore Indoor Stadium"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-08-08"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Esports"
+    }
+  ]
+}

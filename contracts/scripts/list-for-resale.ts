@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const contractAddress = "0x6eE88cA6958547131d6552d1626a8730b1FaF554";
+  const contractAddress = "0x3F82833474353588bC8527CC9faeCD190008100D";
 
   console.log("Listing tickets for resale on contract:", contractAddress);
 

@@ -1,0 +1,32 @@
+{
+  "tokenId": 21,
+  "name": "Etherlink DevCon 2026 — Workshop Bundle",
+  "description": "Workshop Bundle for Etherlink DevCon 2026. All workshops, hackathon prizes, swag bag, networking dinner.",
+  "image": "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Etherlink DevCon 2026"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Workshop Bundle"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "BLOCK71 Singapore"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-09-19"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Developer"
+    }
+  ]
+}

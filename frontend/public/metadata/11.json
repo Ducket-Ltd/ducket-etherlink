@@ -1,0 +1,32 @@
+{
+  "tokenId": 11,
+  "name": "Stand-Up Comedy Night — General Seating",
+  "description": "General Seating ticket for Stand-Up Comedy Night. Standard seating with one drink included.",
+  "image": "https://images.unsplash.com/photo-1527224538127-2104bb71c51b?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Stand-Up Comedy Night"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "General Seating"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Esplanade Theatre Studio"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-07-10"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Comedy"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "tokenId": 5,
+  "name": "Web3 Gaming Expo — Pro Gamer VIP",
+  "description": "Pro Gamer VIP ticket for Web3 Gaming Expo. Early access, pro-player lounge, exclusive merch pack.",
+  "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Web3 Gaming Expo"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Pro Gamer VIP"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Suntec Convention Centre"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-06-30"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Gaming"
+    }
+  ]
+}

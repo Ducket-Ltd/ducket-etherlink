@@ -1,0 +1,32 @@
+{
+  "tokenId": 9,
+  "name": "APAC Startup Summit — Investor Circle",
+  "description": "Investor Circle ticket for APAC Startup Summit. Exclusive investor lounge, deal flow sessions.",
+  "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "APAC Startup Summit"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Investor Circle"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "One Raffles Place"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-05-28"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Business"
+    }
+  ]
+}

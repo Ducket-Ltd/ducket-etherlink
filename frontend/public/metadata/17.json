@@ -1,0 +1,32 @@
+{
+  "tokenId": 17,
+  "name": "Mindful Tech Retreat — Full Day Experience",
+  "description": "Full Day Experience ticket for Mindful Tech Retreat. Digital detox workshops, nature walks, wellness sessions.",
+  "image": "https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Mindful Tech Retreat"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Full Day Experience"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Gardens by the Bay"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-08-22"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Wellness"
+    }
+  ]
+}

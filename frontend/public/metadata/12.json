@@ -1,0 +1,32 @@
+{
+  "tokenId": 12,
+  "name": "Stand-Up Comedy Night — Front Row",
+  "description": "Front Row ticket for Stand-Up Comedy Night. Premium seating, free-flow drinks, post-show meet.",
+  "image": "https://images.unsplash.com/photo-1527224538127-2104bb71c51b?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Stand-Up Comedy Night"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Front Row"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Esplanade Theatre Studio"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-07-10"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Comedy"
+    }
+  ]
+}

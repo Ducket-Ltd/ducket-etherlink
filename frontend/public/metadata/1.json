@@ -1,0 +1,32 @@
+{
+  "tokenId": 1,
+  "name": "Singapore Tech Conference 2026 — VIP Access",
+  "description": "VIP Access ticket for Singapore Tech Conference 2026. Priority seating, exclusive networking lounge, speaker meet & greet.",
+  "image": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Singapore Tech Conference 2026"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "VIP Access"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Marina Bay Sands Expo"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-06-20"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Conference"
+    }
+  ]
+}

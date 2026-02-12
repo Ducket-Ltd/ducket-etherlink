@@ -153,7 +153,7 @@ Follow the prompts. When asked:
 6. Add environment variables:
    | Variable | Value |
    |----------|-------|
-   | `VITE_CONTRACT_ADDRESS` | `0x6eE88cA6958547131d6552d1626a8730b1FaF554` |
+   | `VITE_CONTRACT_ADDRESS` | `0x3F82833474353588bC8527CC9faeCD190008100D` |
    | `VITE_WALLETCONNECT_PROJECT_ID` | Your WalletConnect project ID |
    | `VITE_CHAIN_ID` | `127823` (testnet) or `42793` (mainnet) |
 7. Click "Deploy"

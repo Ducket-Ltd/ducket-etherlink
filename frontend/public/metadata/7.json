@@ -1,0 +1,32 @@
+{
+  "tokenId": 7,
+  "name": "Digital Art Gallery Opening — Collector's Preview",
+  "description": "Collector's Preview ticket for Digital Art Gallery Opening. Early access, champagne reception, meet the artists.",
+  "image": "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "Digital Art Gallery Opening"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Collector's Preview"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "National Gallery Singapore"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-05-15"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Art"
+    }
+  ]
+}

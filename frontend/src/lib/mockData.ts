@@ -1,6 +1,6 @@
 // Mock event data for demo purposes
 // These match the events created on-chain via setup-demo.ts and add-more-events.ts
-// Contract: 0x6eE88cA6958547131d6552d1626a8730b1FaF554
+// Contract: 0x3F82833474353588bC8527CC9faeCD190008100D
 
 export interface MockEvent {
   id: string;

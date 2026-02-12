@@ -1,0 +1,32 @@
+{
+  "tokenId": 15,
+  "name": "APAC Esports Championship — Spectator",
+  "description": "Spectator ticket for APAC Esports Championship. Stadium seating, merchandise booth access.",
+  "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
+  "attributes": [
+    {
+      "trait_type": "Event",
+      "value": "APAC Esports Championship"
+    },
+    {
+      "trait_type": "Tier",
+      "value": "Spectator"
+    },
+    {
+      "trait_type": "Venue",
+      "value": "Singapore Indoor Stadium"
+    },
+    {
+      "trait_type": "City",
+      "value": "Singapore"
+    },
+    {
+      "trait_type": "Date",
+      "value": "2026-08-08"
+    },
+    {
+      "trait_type": "Category",
+      "value": "Esports"
+    }
+  ]
+}

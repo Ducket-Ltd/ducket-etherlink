@@ -94,7 +94,7 @@ Native currency: **XTZ** (18 decimals)
 
 | Network | Contract | Address |
 |---------|----------|---------|
-| Shadownet | EventTicketNFTV2 | `0x6eE88cA6958547131d6552d1626a8730b1FaF554` |
+| Shadownet | EventTicketNFTV2 | `0x3F82833474353588bC8527CC9faeCD190008100D` |
 
 ## How It Works
 
@@ -158,4 +158,4 @@ MIT
 
 ---
 
-[View Demo](https://ducket-etherlink.vercel.app) · [View Contract on Explorer](https://shadownet.explorer.etherlink.com/address/0x6eE88cA6958547131d6552d1626a8730b1FaF554)
+[View Demo](https://ducket-etherlink.vercel.app) · [View Contract on Explorer](https://shadownet.explorer.etherlink.com/address/0x3F82833474353588bC8527CC9faeCD190008100D)
