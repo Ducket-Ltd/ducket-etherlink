@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link, useLocation } from "react-router-dom";
@@ -81,57 +81,81 @@ export default function MyTickets() {
       }))
     : [];
 
-  const { data: ticketResults, isLoading: isLoadingTickets } = useReadContracts({
+  const { data: ticketResults, isLoading: isLoadingTickets, refetch: refetchTickets } = useReadContracts({
     contracts: ticketQueries,
     query: {
       enabled: !!address,
+      staleTime: 30_000,
     },
   });
 
-  // Collect all ticket IDs from all events
-  const allTicketIds: { ticketId: bigint; eventId: number }[] = [];
-  if (ticketResults) {
-    ticketResults.forEach((result, eventId) => {
-      if (result.status === "success" && Array.isArray(result.result)) {
-        (result.result as bigint[]).forEach((ticketId) => {
-          allTicketIds.push({ ticketId, eventId });
-        });
-      }
-    });
-  }
+  // Collect all ticket IDs from all events (memoized)
+  const allTicketIds = useMemo(() => {
+    const ids: { ticketId: bigint; eventId: number }[] = [];
+    if (ticketResults) {
+      console.log('[MyTickets] Raw ticketResults:', ticketResults);
+      ticketResults.forEach((result, eventId) => {
+        console.log(`[MyTickets] Event ${eventId}:`, result.status, result.result, result.error);
+        if (result.status === "success" && Array.isArray(result.result)) {
+          (result.result as bigint[]).forEach((ticketId) => {
+            ids.push({ ticketId, eventId });
+          });
+        }
+      });
+    }
+    return ids;
+  }, [ticketResults]);
 
-  // Build queries for ticket info
-  const ticketInfoQueries = allTicketIds.map(({ ticketId }) => ({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "getTicketInfo" as const,
-    args: [ticketId],
-  }));
+  // Build queries for ticket info (memoized)
+  const ticketInfoQueries = useMemo(() =>
+    allTicketIds.map(({ ticketId }) => ({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "getTicketInfo" as const,
+      args: [ticketId],
+    })),
+    [allTicketIds]
+  );
 
   const { data: ticketInfoResults, isLoading: isLoadingInfo } = useReadContracts({
     contracts: ticketInfoQueries,
     query: {
       enabled: allTicketIds.length > 0,
+      staleTime: 30_000,
     },
   });
 
-  // Build queries for resale listings
-  const resaleQueries = allTicketIds.map(({ ticketId }) => ({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "resaleListings" as const,
-    args: [ticketId],
-  }));
+  // Build queries for resale listings (memoized)
+  const resaleQueries = useMemo(() =>
+    allTicketIds.map(({ ticketId }) => ({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "resaleListings" as const,
+      args: [ticketId],
+    })),
+    [allTicketIds]
+  );
 
   const { data: resaleResults, refetch: refetchResale } = useReadContracts({
     contracts: resaleQueries,
     query: {
       enabled: allTicketIds.length > 0,
+      staleTime: 30_000,
     },
   });
 
   // Process ticket info results
   useEffect(() => {
+    // Debug logging
+    console.log('[MyTickets] Processing:', {
+      address,
+      ticketResultsCount: ticketResults?.length,
+      allTicketIdsCount: allTicketIds.length,
+      ticketInfoResultsCount: ticketInfoResults?.length,
+      isLoadingTickets,
+      isLoadingInfo,
+    });
+
     if (ticketInfoResults && allTicketIds.length > 0) {
       const tickets: TicketData[] = [];
       ticketInfoResults.forEach((result, index) => {
@@ -143,6 +167,7 @@ export default function MyTickets() {
             originalPrice: bigint;
             purchaseTimestamp: bigint;
             exists: boolean;
+            currentOwner: string;
           };
 
           // Check resale status
@@ -156,7 +181,10 @@ export default function MyTickets() {
             }
           }
 
-          if (info.exists) {
+          // Only include tickets the user currently owns
+          const isOwner = address && info.currentOwner?.toLowerCase() === address.toLowerCase();
+
+          if (info.exists && isOwner) {
             tickets.push({
               ticketId: allTicketIds[index].ticketId,
               eventId: Number(info.eventId),
@@ -170,13 +198,15 @@ export default function MyTickets() {
           }
         }
       });
+      console.log('[MyTickets] Found tickets:', tickets.length);
       setUserTickets(tickets);
       setIsLoading(false);
-    } else if (!isLoadingTickets && allTicketIds.length === 0) {
+    } else if (!isLoadingTickets && !isLoadingInfo && allTicketIds.length === 0 && ticketResults) {
+      console.log('[MyTickets] No tickets found');
       setUserTickets([]);
       setIsLoading(false);
     }
-  }, [ticketInfoResults, resaleResults, allTicketIds.length, isLoadingTickets]);
+  }, [ticketInfoResults, resaleResults, allTicketIds, isLoadingTickets, isLoadingInfo, ticketResults, address]);
 
   // Handle successful cancel
   useEffect(() => {

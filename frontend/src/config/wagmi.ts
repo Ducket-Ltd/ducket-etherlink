@@ -19,12 +19,10 @@ export const wagmiConfig = getDefaultConfig({
   transports: {
     [etherlink.id]: http('https://node.mainnet.etherlink.com'),
     [etherlinkTestnet.id]: http('https://node.shadownet.etherlink.com', {
-      batch: {
-        batchSize: 100, // Batch up to 100 calls
-        wait: 50, // Wait 50ms to collect calls
-      },
+      batch: false, // Disable batching - Shadownet RPC doesn't support it
       retryCount: 3,
-      retryDelay: 1000,
+      retryDelay: 500,
+      timeout: 30_000,
     }),
   },
 });
