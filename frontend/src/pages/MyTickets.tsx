@@ -65,8 +65,8 @@ export default function MyTickets() {
     }
   }, [location.state]);
 
-  // Contract write for cancelling listings
-  const { writeContract, data: txHash, isPending: isWritePending } = useWriteContract();
+  // Contract write for cancelling listings and transfers
+  const { writeContract, writeContractAsync, data: txHash, isPending: isWritePending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -220,14 +220,39 @@ export default function MyTickets() {
     }
   }, [isConfirmed, cancellingTicketId, toast, refetchResale]);
 
-  const handleTransfer = async (_recipientAddress: string) => {
-    // In production this would call safeTransferFrom on the contract
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    toast({
-      title: "Transfer Complete",
-      description: "Your ticket has been transferred successfully.",
-    });
-    return { success: true, txHash: "0x" + Math.random().toString(16).slice(2) };
+  const handleTransfer = async (recipientAddress: string) => {
+    if (!selectedTicket || !address) {
+      return { success: false, error: "No ticket selected or wallet not connected" };
+    }
+
+    try {
+      // Call safeTransferFrom on the ERC-1155 contract
+      // Note: For individual tickets, we transfer the ticketId (not tierId), amount is 1
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "safeTransferFrom",
+        args: [
+          address, // from
+          recipientAddress as `0x${string}`, // to
+          selectedTicket.ticketId, // id (the ticket ID)
+          BigInt(1), // value (amount to transfer)
+          "0x" as `0x${string}`, // data (empty bytes)
+        ],
+      });
+
+      // Wait for confirmation
+      toast({
+        title: "Transfer Submitted",
+        description: "Waiting for confirmation...",
+      });
+
+      return { success: true, txHash: hash };
+    } catch (error: unknown) {
+      console.error("Transfer failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Transfer failed";
+      return { success: false, error: errorMessage };
+    }
   };
 
   const handleListForResale = async (price: number) => {
@@ -531,6 +556,8 @@ export default function MyTickets() {
           onClose={() => {
             setTransferModalOpen(false);
             setSelectedTicket(null);
+            // Refetch tickets to update the list after transfer
+            refetchTickets();
           }}
           ticketId={selectedTicket.id}
           eventName={selectedTicket.eventName}
