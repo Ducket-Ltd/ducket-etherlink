@@ -439,6 +439,12 @@ export default function MyTickets() {
                         variant="outline"
                         size="sm"
                         className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
+                        onClick={() => {
+                          toast({
+                            title: "QR Code Not Available",
+                            description: "This feature is not available in the demo.",
+                          });
+                        }}
                       >
                         <QrCode className="h-4 w-4 mr-1" />
                         QR

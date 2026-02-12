@@ -129,9 +129,15 @@ export function TransferModal({
 
               {/* Error Alert */}
               {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="overflow-hidden">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <AlertDescription className="break-words overflow-hidden text-ellipsis">
+                    {error.includes("User rejected")
+                      ? "Transaction was cancelled by user."
+                      : error.length > 100
+                        ? error.substring(0, 100) + "..."
+                        : error}
+                  </AlertDescription>
                 </Alert>
               )}
 
