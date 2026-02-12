@@ -53,3 +53,4 @@ coverage/
 
 # Planning docs (internal only)
 *-plan.md
+.vercel

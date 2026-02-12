@@ -6,8 +6,15 @@ const FALLBACK_XTZ_PRICE = 1.20;
 // Cache duration: 60 seconds
 const CACHE_DURATION_MS = 60 * 1000;
 
-// CoinGecko public API endpoint
-const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';
+// Use our API proxy in production (avoids CORS), direct CoinGecko locally
+const getApiUrl = () => {
+  // In production (Vercel), use our proxy endpoint
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return '/api/xtz-price';
+  }
+  // In development, try direct (may fail due to CORS, fallback will handle it)
+  return 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';
+};
 
 interface PriceCache {
   price: number;
@@ -32,7 +39,7 @@ async function fetchXtzPrice(): Promise<number> {
   // Start a new fetch
   fetchPromise = (async () => {
     try {
-      const response = await fetch(COINGECKO_API_URL);
+      const response = await fetch(getApiUrl());
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

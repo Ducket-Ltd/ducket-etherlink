@@ -1,6 +1,6 @@
-import { useParams, Link } from "react-router-dom";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseEther } from "viem";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useReadContracts } from "wagmi";
+import { parseEther, formatEther } from "viem";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Loader2,
 } from "lucide-react";
-import { getEventById, getTicketsRemaining, getResaleListingsForEvent, MOCK_EVENTS } from "@/lib/mockData";
+import { getEventById, getTicketsRemaining, MOCK_EVENTS } from "@/lib/mockData";
 import { formatDateTime, truncateAddress } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/wagmi";
 
 export default function EventDetails() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { isConnected } = useAccount();
   const { toast } = useToast();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export default function EventDetails() {
 
   const isPurchasing = isWritePending || isConfirming;
 
-  // Show success toast when confirmed
+  // Show success toast when confirmed and redirect to My Tickets
   useEffect(() => {
     if (isConfirmed && txHash) {
       toast({
@@ -53,8 +54,10 @@ export default function EventDetails() {
       setSelectedTier(null);
       setQuantity(1);
       setTxHash(undefined);
+      // Redirect to My Tickets with timestamp to identify new tickets
+      navigate("/my-tickets", { state: { purchaseTimestamp: Math.floor(Date.now() / 1000) } });
     }
-  }, [isConfirmed, txHash, toast]);
+  }, [isConfirmed, txHash, toast, navigate]);
 
   // Show error toast
   useEffect(() => {
@@ -196,7 +199,11 @@ export default function EventDetails() {
 
           {/* Resale Listings Section */}
           {event.resaleEnabled && (
-            <ResaleListingsSection eventId={event.id} maxResalePercentage={event.maxResalePercentage} />
+            <ResaleListingsSection
+              eventId={event.id}
+              maxResalePercentage={event.maxResalePercentage}
+              ticketTiers={event.ticketTiers}
+            />
           )}
         </div>
 
@@ -333,12 +340,188 @@ export default function EventDetails() {
   );
 }
 
-// Resale Listings Section Component
-function ResaleListingsSection({ eventId, maxResalePercentage }: { eventId: string; maxResalePercentage: number }) {
-  const { isConnected } = useAccount();
-  const resaleListings = getResaleListingsForEvent(eventId);
+// Resale Listings Section Component - Fetches on-chain data
+interface ResaleListingsSectionProps {
+  eventId: string;
+  maxResalePercentage: number;
+  ticketTiers: Array<{ id: string; tokenId: number; name: string; price: number }>;
+}
 
-  if (resaleListings.length === 0) {
+interface OnChainResaleListing {
+  ticketId: bigint;
+  seller: string;
+  price: bigint;
+  originalPrice: bigint;
+  seatIdentifier: string;
+  tierId: number;
+  tierName: string;
+}
+
+function ResaleListingsSection({ eventId, maxResalePercentage, ticketTiers }: ResaleListingsSectionProps) {
+  const { isConnected } = useAccount();
+  const { toast } = useToast();
+  const [buyingTicketId, setBuyingTicketId] = useState<bigint | null>(null);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+
+  // Get contract eventId by querying the first tier
+  const firstTierTokenId = ticketTiers[0]?.tokenId ?? 0;
+
+  // Query ticket tier to get the contract's eventId
+  const { data: tierData } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getTicketTier",
+    args: [BigInt(firstTierTokenId)],
+  });
+
+  const contractEventId = tierData?.eventId ?? BigInt(0);
+
+  // Get all tickets for this event
+  const { data: eventTickets, isLoading: isLoadingTickets } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getEventTickets",
+    args: [contractEventId],
+    query: {
+      enabled: !!tierData,
+    },
+  });
+
+  // Query resale listings for all tickets
+  const resaleQueries = (eventTickets || []).map((ticketId: bigint) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "resaleListings" as const,
+    args: [ticketId],
+  }));
+
+  const { data: resaleResults, isLoading: isLoadingResale } = useReadContracts({
+    contracts: resaleQueries,
+    query: {
+      enabled: (eventTickets || []).length > 0,
+    },
+  });
+
+  // Query ticket info for listed tickets
+  const ticketInfoQueries = (eventTickets || []).map((ticketId: bigint) => ({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getTicketInfo" as const,
+    args: [ticketId],
+  }));
+
+  const { data: ticketInfoResults } = useReadContracts({
+    contracts: ticketInfoQueries,
+    query: {
+      enabled: (eventTickets || []).length > 0,
+    },
+  });
+
+  // Contract write for buying resale tickets
+  const { writeContract, isPending: isWritePending } = useWriteContract();
+
+  // Wait for transaction receipt
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  // Handle buy success
+  useEffect(() => {
+    if (isConfirmed && txHash) {
+      toast({
+        title: "Purchase Successful!",
+        description: "You've purchased a resale ticket. XTZ has been refunded (demo mode).",
+      });
+      setBuyingTicketId(null);
+      setTxHash(undefined);
+    }
+  }, [isConfirmed, txHash, toast]);
+
+  // Build active listings from results
+  const activeListings: OnChainResaleListing[] = [];
+  if (resaleResults && ticketInfoResults && eventTickets) {
+    resaleResults.forEach((result, index) => {
+      if (result.status === "success" && result.result) {
+        const [ticketId, seller, price, active] = result.result as [bigint, string, bigint, boolean];
+        if (active && ticketInfoResults[index]?.status === "success") {
+          const ticketInfo = ticketInfoResults[index].result as {
+            eventId: bigint;
+            tierId: bigint;
+            seatIdentifier: string;
+            originalPrice: bigint;
+          };
+          const tier = ticketTiers.find((t) => t.tokenId === Number(ticketInfo.tierId));
+          activeListings.push({
+            ticketId,
+            seller,
+            price,
+            originalPrice: ticketInfo.originalPrice,
+            seatIdentifier: ticketInfo.seatIdentifier,
+            tierId: Number(ticketInfo.tierId),
+            tierName: tier?.name || "Unknown",
+          });
+        }
+      }
+    });
+  }
+
+  const handleBuyResale = (ticketId: bigint, price: bigint) => {
+    setBuyingTicketId(ticketId);
+    writeContract(
+      {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "buyResaleTicket",
+        args: [ticketId],
+        value: price,
+      },
+      {
+        onSuccess: (hash) => {
+          setTxHash(hash);
+          toast({
+            title: "Transaction Submitted",
+            description: "Waiting for confirmation...",
+          });
+        },
+        onError: (error) => {
+          setBuyingTicketId(null);
+          toast({
+            title: "Purchase Failed",
+            description: error.message.includes("User rejected")
+              ? "Transaction was cancelled"
+              : "Failed to purchase ticket. Please try again.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const isLoading = isLoadingTickets || isLoadingResale;
+
+  if (isLoading) {
+    return (
+      <Card className="border-[#E8E3F5]">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center text-[#1a1625]">
+            <Tag className="h-5 w-5 mr-2 text-[#3D2870]" />
+            Resale Marketplace
+            <Badge className="ml-2 bg-[#F5F0FF] text-[#3D2870]">
+              {maxResalePercentage}% cap
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-[#3D2870] mr-2" />
+            <span className="text-gray-600">Loading resale listings...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (activeListings.length === 0) {
     return (
       <Card className="border-[#E8E3F5]">
         <CardHeader>
@@ -371,24 +554,23 @@ function ResaleListingsSection({ eventId, maxResalePercentage }: { eventId: stri
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {resaleListings.map((listing) => {
-          const event = MOCK_EVENTS.find((e) => e.id === listing.eventId);
-          const tier = event?.ticketTiers.find((t) => t.id === listing.tierId);
-          const markup = Math.round(
-            ((listing.listingPrice - listing.originalPrice) / listing.originalPrice) * 100
-          );
+        {activeListings.map((listing) => {
+          const listingPriceXtz = Number(formatEther(listing.price));
+          const originalPriceXtz = Number(formatEther(listing.originalPrice));
+          const markup = Math.round(((listingPriceXtz - originalPriceXtz) / originalPriceXtz) * 100);
+          const isBuying = buyingTicketId === listing.ticketId && (isWritePending || isConfirming);
 
           return (
             <div
-              key={listing.id}
+              key={listing.ticketId.toString()}
               className="flex items-center justify-between p-3 rounded-lg border border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge variant="outline" className="border-[#3D2870] text-[#3D2870]">
-                    {tier?.name || "Unknown"}
+                    {listing.tierName}
                   </Badge>
-                  <span className="text-xs text-gray-500">#{listing.seatId}</span>
+                  <span className="text-xs text-gray-500">#{listing.seatIdentifier}</span>
                 </div>
                 <p className="text-xs text-gray-500">
                   Seller: {truncateAddress(listing.seller)}
@@ -396,15 +578,27 @@ function ResaleListingsSection({ eventId, maxResalePercentage }: { eventId: stri
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <PriceDisplay xtzAmount={listing.listingPrice} size="sm" />
+                  <PriceDisplay xtzAmount={listingPriceXtz} size="sm" />
                   <div className="flex items-center text-xs text-gray-500">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +{markup}% from original
                   </div>
                 </div>
                 {isConnected ? (
-                  <Button size="sm" className="bg-[#3D2870] hover:bg-[#6B5B95]">
-                    Buy
+                  <Button
+                    size="sm"
+                    className="bg-[#3D2870] hover:bg-[#6B5B95]"
+                    disabled={isBuying}
+                    onClick={() => handleBuyResale(listing.ticketId, listing.price)}
+                  >
+                    {isBuying ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        {isConfirming ? "Confirming..." : "Buying..."}
+                      </>
+                    ) : (
+                      "Buy"
+                    )}
                   </Button>
                 ) : (
                   <ConnectButton.Custom>

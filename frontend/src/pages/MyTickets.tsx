@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,12 +41,29 @@ interface SelectedTicket {
 export default function MyTickets() {
   const { isConnected, address } = useAccount();
   const { toast } = useToast();
+  const location = useLocation();
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [resaleModalOpen, setResaleModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SelectedTicket | null>(null);
   const [userTickets, setUserTickets] = useState<TicketData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cancellingTicketId, setCancellingTicketId] = useState<bigint | null>(null);
+  const [purchaseTimestamp, setPurchaseTimestamp] = useState<number | null>(null);
+
+  // Handle new purchase highlight from navigation state
+  useEffect(() => {
+    const state = location.state as { purchaseTimestamp?: number } | null;
+    if (state?.purchaseTimestamp) {
+      setPurchaseTimestamp(state.purchaseTimestamp);
+      // Clear highlight after 4 seconds
+      const timer = setTimeout(() => {
+        setPurchaseTimestamp(null);
+      }, 4000);
+      // Clear the navigation state to prevent re-highlighting on refresh
+      window.history.replaceState({}, document.title);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   // Contract write for cancelling listings
   const { writeContract, data: txHash, isPending: isWritePending } = useWriteContract();
@@ -252,7 +269,7 @@ export default function MyTickets() {
     );
   }
 
-  // Map ticket data to display format
+  // Map ticket data to display format, sorted by purchase timestamp (newest first)
   const displayTickets = userTickets.map((ticket) => {
     // Find matching mock event data for display info
     const mockEvent = MOCK_EVENTS.find((e) => {
@@ -266,7 +283,9 @@ export default function MyTickets() {
       event: mockEvent,
       tier,
     };
-  }).filter((t) => t.event && t.tier);
+  })
+    .filter((t) => t.event && t.tier)
+    .sort((a, b) => Number(b.purchaseTimestamp - a.purchaseTimestamp));
 
   return (
     <main className="container py-8">
@@ -298,11 +317,15 @@ export default function MyTickets() {
             const isPast = ticket.event!.date < new Date();
             const priceInXtz = Number(formatEther(ticket.originalPrice));
             const isCancelling = cancellingTicketId === ticket.ticketId && (isWritePending || isConfirming);
+            // Highlight tickets purchased after the navigation timestamp (with 60s tolerance for block time)
+            const ticketPurchaseTime = Number(ticket.purchaseTimestamp);
+            const isNewlyPurchased = purchaseTimestamp !== null &&
+              ticketPurchaseTime >= purchaseTimestamp - 60;
 
             return (
               <Card
                 key={ticket.ticketId.toString()}
-                className={`overflow-hidden border-[#E8E3F5] hover:border-[#3D2870]/30 transition-colors ${isPast ? "opacity-60" : ""}`}
+                className={`overflow-hidden border-[#E8E3F5] hover:border-[#3D2870]/30 transition-all duration-500 ${isPast ? "opacity-60" : ""} ${isNewlyPurchased ? "ring-2 ring-[#3D2870] ring-offset-2 animate-pulse bg-[#F5F0FF]" : ""}`}
               >
                 <div className="flex">
                   {/* Event Image */}
