@@ -65,7 +65,7 @@ export default function Home() {
               asChild
             >
               <Link to="/resale">
-                Resale MarketPlace
+                Resale Marketplace
               </Link>
             </Button>
           </div>
