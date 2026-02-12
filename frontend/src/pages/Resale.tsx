@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, MapPin, TrendingUp, Shield, Search, Loader2 } from "lucide-react";
+import { Calendar, MapPin, TrendingUp, Shield, Search, Loader2, RefreshCw } from "lucide-react";
 import { MOCK_EVENTS } from "@/lib/mockData";
 import { formatDate, truncateAddress } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PriceDisplay } from "@/components/shared/PriceDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/wagmi";
 import { formatEther } from "viem";
@@ -41,6 +41,7 @@ export default function Resale() {
   const [sortBy, setSortBy] = useState("recent");
   const [listings, setListings] = useState<ResaleListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [buyingTicketId, setBuyingTicketId] = useState<bigint | null>(null);
 
   // Contract write for buying
@@ -49,7 +50,7 @@ export default function Resale() {
     hash: txHash,
   });
 
-  // Query all event tickets
+  // Query all event tickets with caching
   const eventTicketQueries = Array.from({ length: TOTAL_EVENTS }, (_, i) => ({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
@@ -59,53 +60,78 @@ export default function Resale() {
 
   const { data: eventTicketsData } = useReadContracts({
     contracts: eventTicketQueries,
+    query: {
+      staleTime: 5 * 60_000, // Cache for 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+    },
   });
 
-  // Collect all ticket IDs
-  const allTicketIds: bigint[] = [];
-  if (eventTicketsData) {
-    eventTicketsData.forEach((result) => {
-      if (result.status === "success" && Array.isArray(result.result)) {
-        allTicketIds.push(...(result.result as bigint[]));
-      }
-    });
-  }
+  // Collect all ticket IDs (memoized to prevent re-renders)
+  const allTicketIds = useMemo(() => {
+    const ids: bigint[] = [];
+    if (eventTicketsData) {
+      eventTicketsData.forEach((result) => {
+        if (result.status === "success" && Array.isArray(result.result)) {
+          ids.push(...(result.result as bigint[]));
+        }
+      });
+    }
+    return ids;
+  }, [eventTicketsData]);
 
-  // Query resale listings for all tickets
-  const resaleQueries = allTicketIds.map((ticketId) => ({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "resaleListings" as const,
-    args: [ticketId],
-  }));
+  // Query resale listings for all tickets (with caching)
+  const resaleQueries = useMemo(() =>
+    allTicketIds.map((ticketId) => ({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "resaleListings" as const,
+      args: [ticketId],
+    })),
+    [allTicketIds]
+  );
 
   const { data: resaleData, refetch: refetchResale } = useReadContracts({
     contracts: resaleQueries,
     query: {
       enabled: allTicketIds.length > 0,
+      staleTime: 5 * 60_000, // Cache for 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
   });
 
-  // Query ticket info for active listings
-  const activeTicketIds = allTicketIds.filter((_, index) => {
-    if (!resaleData || !resaleData[index]) return false;
-    const result = resaleData[index];
-    if (result.status !== "success") return false;
-    const listing = result.result as [bigint, string, bigint, boolean];
-    return listing[3]; // active flag
-  });
+  // Query ticket info for active listings (memoized)
+  const activeTicketIds = useMemo(() => {
+    return allTicketIds.filter((_, index) => {
+      if (!resaleData || !resaleData[index]) return false;
+      const result = resaleData[index];
+      if (result.status !== "success") return false;
+      const listing = result.result as [bigint, string, bigint, boolean];
+      return listing[3]; // active flag
+    });
+  }, [allTicketIds, resaleData]);
 
-  const ticketInfoQueries = activeTicketIds.map((ticketId) => ({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: "getTicketInfo" as const,
-    args: [ticketId],
-  }));
+  const ticketInfoQueries = useMemo(() =>
+    activeTicketIds.map((ticketId) => ({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: "getTicketInfo" as const,
+      args: [ticketId],
+    })),
+    [activeTicketIds]
+  );
 
-  const { data: ticketInfoData } = useReadContracts({
+  const { data: ticketInfoData, refetch: refetchTicketInfo } = useReadContracts({
     contracts: ticketInfoQueries,
     query: {
       enabled: activeTicketIds.length > 0,
+      staleTime: 5 * 60_000, // Cache for 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
   });
 
@@ -148,7 +174,7 @@ export default function Resale() {
       setListings([]);
       setIsLoading(false);
     }
-  }, [resaleData, ticketInfoData, activeTicketIds.length, allTicketIds.length, eventTicketsData]);
+  }, [resaleData, ticketInfoData, activeTicketIds, allTicketIds, eventTicketsData]);
 
   // Handle successful purchase
   useEffect(() => {
@@ -171,6 +197,16 @@ export default function Resale() {
       args: [ticketId],
       value: price,
     });
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchResale();
+      await refetchTicketInfo();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   // Enrich listings with mock event data for display
@@ -218,11 +254,23 @@ export default function Resale() {
   return (
     <main className="container py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-[#1a1625]">Resale Marketplace</h1>
-        <p className="text-gray-600">
-          Buy tickets from other fans at fair, capped prices
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2 text-[#1a1625]">Resale Marketplace</h1>
+          <p className="text-gray-600">
+            Buy tickets from other fans at fair, capped prices
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="border-[#3D2870] text-[#3D2870] hover:bg-[#F5F0FF]"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
 
       {/* Info Banner */}

@@ -18,7 +18,14 @@ export const wagmiConfig = getDefaultConfig({
   chains: SUPPORTED_CHAINS as any,
   transports: {
     [etherlink.id]: http('https://node.mainnet.etherlink.com'),
-    [etherlinkTestnet.id]: http('https://rpc.ankr.com/etherlink_shadownet_testnet'),
+    [etherlinkTestnet.id]: http('https://node.shadownet.etherlink.com', {
+      batch: {
+        batchSize: 100, // Batch up to 100 calls
+        wait: 50, // Wait 50ms to collect calls
+      },
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
   },
 });
 

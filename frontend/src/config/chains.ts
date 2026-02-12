@@ -27,7 +27,12 @@ export const etherlinkTestnet = defineChain({
     decimals: 18,
   },
   rpcUrls: {
-    default: { http: ['https://rpc.ankr.com/etherlink_shadownet_testnet'] },
+    default: {
+      http: [
+        'https://node.shadownet.etherlink.com',
+        'https://rpc.ankr.com/etherlink_shadownet_testnet',
+      ]
+    },
   },
   blockExplorers: {
     default: { name: 'Etherlink Shadownet Explorer', url: 'https://shadownet.explorer.etherlink.com' },
